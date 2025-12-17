@@ -45,7 +45,14 @@ module.exports = async function handler(req, res) {
       sessionId: sessionId || null,
     });
   } catch (err) {
-    console.error("OpenAI error:", err);
-    return res.status(500).json({ error: "OpenAI request failed" });
-  }
-};
+  console.error("OpenAI error:", err);
+
+  return res.status(500).json({
+    error: "OpenAI request failed",
+    message: err?.message,
+    status: err?.status,
+    code: err?.code,
+    type: err?.type,
+  });
+}
+
