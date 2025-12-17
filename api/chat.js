@@ -31,7 +31,15 @@ module.exports = async function handler(req, res) {
   const { message, sessionId } = body;
 
   if (!message || typeof message !== "string") {
-    return res.status(400).json({ error: "Missing message" });
+    return res.status(400).json({ error: "Missing message" });// 🔍 MODO PRUEBA (NO usa OpenAI)
+if (message === "__ping__") {
+  return res.status(200).json({
+    reply: "pong",
+    actions: [],
+    sessionId: sessionId || null,
+  });
+}
+    
   }
 
   // 3) API Key
