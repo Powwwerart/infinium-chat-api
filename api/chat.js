@@ -1,35 +1,59 @@
 const OpenAI = require("openai");
 
 module.exports = async function handler(req, res) {
-  try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
+  // Opcional: CORS básico (por si luego llamas desde infinium.services)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    // Parse seguro del body 
-    let body;
+  if (req.method === "OPTIONS") return res.status(204).end();
+
+  // 1) Solo POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // 2) Body seguro (soporta objeto o string)
+  let body = req.body;
+  if (typeof body === "string") {
     try {
-      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    } catch (e) {
+      body = JSON.parse(body);
+    } catch {
       return res.status(400).json({ error: "Invalid JSON" });
     }
+  }
 
-    const { message, sessionId } = body || {};
-    if (!message) return res.status(400).json({ error: "Missing message" });
+  // Si llegó vacío o raro
+  if (!body || typeof body !== "object") {
+    return res.status(400).json({ error: "Invalid JSON" });
+  }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "Missing OPENAI_API_KEY in Vercel env" });
-    }
+  const { message, sessionId } = body;
 
+  if (!message || typeof message !== "string") {
+    return res.status(400).json({ error: "Missing message" });
+  }
+
+  // 3) API Key
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res
+      .status(500)
+      .json({ error: "Missing OPENAI_API_KEY in Vercel env" });
+  }
+
+  try {
+    // 4) Cliente OpenAI
     const client = new OpenAI({ apiKey });
 
+    // 5) Llamada a OpenAI
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "Eres el asistente de atención a clientes de INFINEUM. Responde claro, profesional y humano.",
+          content:
+            "Eres el asistente de atención a clientes de INFINEUM. Responde claro, profesional y humano. Si te preguntan de salud, evita claims médicos y recomienda consultar un profesional.",
         },
         { role: "user", content: message },
       ],
