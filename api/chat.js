@@ -31,7 +31,9 @@ module.exports = async function handler(req, res) {
   const { message, sessionId } = body;
 
   if (!message || typeof message !== "string") {
-    return res.status(400).json({ error: "Missing message" });// 🔍 MODO PRUEBA (NO usa OpenAI)
+    return res.status(400).json({ error: "Missing message" });
+    
+    // 🔍 MODO PRUEBA (NO usa OpenAI)
 if (message === "__ping__") {
   return res.status(200).json({
     reply: "pong",
