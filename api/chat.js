@@ -1,39 +1,51 @@
 const OpenAI = require("openai");
 
-module.exports = async (req, res) => {
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+module.exports = async function handler(req, res) {
+  // 1️⃣ Solo POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // 2️⃣ Parse seguro del body
+  let body;
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Use POST" });
-    }
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    return res.status(400).json({ error: "Invalid JSON" });
+  }
 
-    const body = typeof req.body === "string"
-      ? JSON.parse(req.body)
-      : req.body;
+  const { message, sessionId } = body || {};
 
-    const message = body?.message;
-    if (!message) {
-      return res.status(400).json({ error: "Missing message" });
-    }
+  if (!message) {
+    return res.status(400).json({ error: "Missing message" });
+  }
 
-    if (!process.env.OPENAI_API_KEY) {
-      return res.status(500).json({ error: "OPENAI_API_KEY missing" });
-    }
-
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+  try {
+    // 3️⃣ Llamada a OpenAI
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Eres el asistente de atención a clientes de INFINEUM. Responde claro, profesional y humano.",
+        },
+        { role: "user", content: message },
+      ],
     });
 
-    const response = await client.responses.create({
-      model: "gpt-5-mini",
-      input: message
-    });
-
+    // 4️⃣ Respuesta JSON limpia
     return res.status(200).json({
-      reply: response.output_text
+      reply: completion.choices[0].message.content,
+      actions: [],
+      sessionId: sessionId || null,
     });
-
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: err.message });
+    console.error("OpenAI error:", err);
+    return res.status(500).json({ error: "OpenAI request failed" });
   }
 };
