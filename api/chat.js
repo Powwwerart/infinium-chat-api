@@ -1,29 +1,39 @@
-import OpenAI from "openai";
+const OpenAI = require("openai");
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
+module.exports = async (req, res) => {
   try {
-    const { message } = req.body;
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Use POST" });
+    }
+
+    const body = typeof req.body === "string"
+      ? JSON.parse(req.body)
+      : req.body;
+
+    const message = body?.message;
+    if (!message) {
+      return res.status(400).json({ error: "Missing message" });
+    }
+
+    if (!process.env.OPENAI_API_KEY) {
+      return res.status(500).json({ error: "OPENAI_API_KEY missing" });
+    }
 
     const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.OPENAI_API_KEY
     });
 
     const response = await client.responses.create({
       model: "gpt-5-mini",
-      input: message,
+      input: message
     });
 
-    res.status(200).json({
-      reply: response.output_text,
+    return res.status(200).json({
+      reply: response.output_text
     });
-  } catch (error) {
-    res.status(500).json({
-      error: "Internal server error",
-      details: error.message,
-    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: err.message });
   }
-}
+};
