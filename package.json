@@ -1,0 +1,8 @@
+{
+  "name": "infinium-chat-api",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "openai": "^5.0.0"
+  }
+}
