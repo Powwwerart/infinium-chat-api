@@ -1,6 +1,22 @@
 const OpenAI = require("openai");
 
+// ✅ 1) CORS helper (esto está "arriba de tu lógica")
+function setCors(res) {
+  res.setHeader("Access-Control-Allow-Origin", "https://infinium.services");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Max-Age", "86400");
+}
+
 module.exports = async function handler(req, res) {
+  // ✅ 2) SIEMPRE poner headers CORS al inicio
+  setCors(res);
+
+  // ✅ 3) Responder preflight ANTES de todo
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
@@ -18,7 +34,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: "Missing message" });
     }
 
-    // 🧪 MODO PRUEBA — DEBE IR AQUÍ
+    // 🧪 MODO PRUEBA
     if (message === "__ping__") {
       return res.status(200).json({
         reply: "pong",
