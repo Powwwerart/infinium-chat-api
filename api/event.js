@@ -1,14 +1,7 @@
-const DEFAULT_ORIGIN = "https://infinium.services";
-
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", DEFAULT_ORIGIN);
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Max-Age", "86400");
-}
+const { setCors } = require("./_cors");
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  setCors(res, ["POST", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
