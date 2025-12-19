@@ -1,14 +1,7 @@
-const DEFAULT_ORIGIN = "https://infinium.services";
-
-function setCors(res) {
-  res.setHeader("Access-Control-Allow-Origin", DEFAULT_ORIGIN);
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Max-Age", "86400");
-}
+const { setCors } = require("./_cors");
 
 module.exports = async function handler(req, res) {
-  setCors(res);
+  setCors(req, res, ["POST", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
@@ -18,11 +11,6 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const webhookUrl = process.env.N8N_WEBHOOK_URL;
-  if (!webhookUrl) {
-    return res.status(500).json({ error: "Missing N8N_WEBHOOK_URL" });
-  }
-
   let body;
   try {
     body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
@@ -30,11 +18,20 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: "Invalid JSON" });
   }
 
+  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  const payload = body ?? {};
+
+  console.log("EVENT RECEIVED:", payload);
+
+  if (!webhookUrl) {
+    return res.status(200).json({ ok: true });
+  }
+
   try {
     const response = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body ?? {}),
+      body: JSON.stringify(payload),
     });
 
     let responseData = null;
@@ -45,7 +42,7 @@ module.exports = async function handler(req, res) {
       responseData = text || null;
     }
 
-    return res.status(response.status).json({
+    return res.status(response.ok ? 200 : response.status).json({
       ok: response.ok,
       status: response.status,
       data: responseData,
