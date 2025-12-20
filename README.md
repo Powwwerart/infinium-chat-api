@@ -13,6 +13,8 @@ Create a `.env` file (see `.env.example`) with:
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed origins for CORS. | `https://infinium.services,https://localhost:3000,http://localhost:3000` |
 | `NODE_ENV` | Node environment. | `production` |
 
+If `N8N_WEBHOOK_URL` is not configured, `/api/chat` returns a stable fallback reply with a WhatsApp action and `/api/event` returns `{ ok: true, message: "event accepted (n8n not configured yet)" }`, both with HTTP 200. This prevents misconfiguration from causing 500 errors while keeping CORS and rate limiting intact.
+
 ## Endpoints
 
 - `POST /api/chat` — Validates `message` (non-empty string) and forwards normalized payload to n8n. Returns the exact `reply` and `actions` from n8n (defaults `actions` to `[]`).
