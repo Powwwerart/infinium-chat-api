@@ -38,6 +38,10 @@ module.exports = async function handler(req, res) {
     data: cleanedData,
   };
 
+  if (!process.env.N8N_WEBHOOK_URL) {
+    return sendJson(res, 200, { ok: true, message: "event accepted (n8n not configured yet)" });
+  }
+
   try {
     const { data, status } = await forwardToN8n(payload);
     return sendJson(res, status, data);

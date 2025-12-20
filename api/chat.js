@@ -36,6 +36,20 @@ module.exports = async function handler(req, res) {
     meta: cleanedMeta,
   };
 
+  if (!process.env.N8N_WEBHOOK_URL) {
+    return sendJson(res, 200, {
+      reply: "Sistema en configuración. Ya recibí tu mensaje. En breve te atiendo.",
+      actions: [
+        {
+          type: "whatsapp",
+          label: "WhatsApp",
+          phone: "+19565505115",
+          text: "Hola, vengo de INFINEUM. Quiero información.",
+        },
+      ],
+    });
+  }
+
   try {
     const { data, status } = await forwardToN8n(payload);
     return sendJson(res, status, data);
