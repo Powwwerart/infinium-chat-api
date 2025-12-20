@@ -6,15 +6,16 @@ Set these variables in your deployment platform:
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | API key for OpenAI chat completions. | `sk-xxxx` |
-| `N8N_WEBHOOK_URL` | Full URL for forwarding `/api/event` payloads to n8n. | `https://n8n.example.com/webhook/abc123` |
+| `N8N_WEBHOOK_URL` | Full URL for forwarding normalized payloads to n8n. | `https://arturojr.app.n8n.cloud/webhook-test/infinium-event` |
+| `N8N_WEBHOOK_SECRET` | Secret sent to n8n as `x-infinium-secret`. | `<string-largo>` |
+| `ALLOWED_ORIGINS` | Comma-separated list of origins allowed via CORS. | `https://infinium.services,https://localhost:3000,http://localhost:3000` |
+| `NODE_ENV` | Node environment. | `production` |
 | `PORT` (if applicable) | Port for local development servers. Some platforms set this automatically. | `3000` |
-| `CORS_ALLOW_ALL_ORIGINS` (optional) | Set to `true` to allow `*` during debugging. Defaults to `https://infinium.services`. | `true` |
 
 ### CORS
-- Allowed origin: `https://infinium.services`
+- Allowed origins: configured via `ALLOWED_ORIGINS` (defaults to `https://infinium.services`, `https://localhost:3000`, `http://localhost:3000`).
 - Allowed methods per endpoint:
-  - `/api/chat`: `GET`, `POST`, `OPTIONS`
+  - `/api/chat`: `POST`, `OPTIONS`
   - `/api/event`: `POST`, `OPTIONS`
   - `/api/ping`: `GET`, `OPTIONS`
 - Allowed headers: `Content-Type`
@@ -28,10 +29,10 @@ npm run dev # or your platform's dev command
 
 ## Endpoint reference
 
-- `POST /api/chat` — Forwards messages to OpenAI. Requires `OPENAI_API_KEY`.
-- `GET /api/chat` — Health check that returns `{ ok: true, note: "Use POST to chat" }`.
+- `POST /api/chat` — Validates `message`, normalizes payload, forwards to `N8N_WEBHOOK_URL` with `x-infinium-secret`, and relays the JSON reply (defaults `actions` to `[]`).
+- `POST /api/event` — Validates `event`, normalizes payload (includes `data`), forwards to `N8N_WEBHOOK_URL` with `x-infinium-secret`, and relays the JSON reply (defaults `actions` to `[]`).
 - `GET /api/ping` — Health-style check that returns `{ ok: true, service: "infinium-chat-api", ts: "<ISOString>" }`.
-- `POST /api/event` — Forwards request body to `N8N_WEBHOOK_URL` and relays response.
+- `GET /api/health` — Basic health check returning `{ ok: true, service: "infinium-chat-api", ts }`.
 
 ## Testing the healthchecks
 
@@ -57,26 +58,6 @@ Expected JSON:
 { "ok": true, "service": "infinium-chat-api", "ts": "2024-01-01T00:00:00.000Z" }
 ```
 
-### GET /api/chat (health)
-
-**fetch**
-```js
-fetch("/api/chat")
-  .then((r) => r.json())
-  .then(console.log)
-  .catch(console.error);
-```
-
-**curl**
-```bash
-curl -i https://your-deployment-url/api/chat
-```
-
-Expected JSON:
-```json
-{ "ok": true, "note": "Use POST to chat" }
-```
-
 ### POST /api/chat
 
 **fetch**
@@ -99,7 +80,7 @@ curl -i \
   https://your-deployment-url/api/chat
 ```
 
-Expected JSON (reply content depends on the model response):
+Expected JSON (mirrors what n8n returns; `actions` defaults to `[]` when missing):
 ```json
-{ "reply": "...", "actions": [], "sessionId": "demo-session" }
+{ "reply": "...", "actions": [] }
 ```

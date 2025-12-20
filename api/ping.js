@@ -1,7 +1,7 @@
 const { setCors } = require("./_cors");
 
 module.exports = async function handler(req, res) {
-  setCors(res, ["GET", "OPTIONS"]);
+  setCors(req, res, ["GET", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();

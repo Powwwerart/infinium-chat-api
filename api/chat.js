@@ -1,78 +1,49 @@
-const OpenAI = require("openai");
 const { setCors } = require("./_cors");
+const { isRateLimited } = require("./_rateLimit");
+const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
 
 module.exports = async function handler(req, res) {
-  // ✅ 2) SIEMPRE poner headers CORS al inicio
-  setCors(res, ["POST", "GET", "OPTIONS"]);
+  setCors(req, res, ["POST", "OPTIONS"]);
 
-  // ✅ 3) Responder preflight ANTES de todo
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { error: "Method not allowed" });
+  }
+
+  const body = parseRequestBody(req, res);
+  if (!body) return; // parseRequestBody already responded
+
+  const { message, sessionId, meta } = body;
+
+  if (typeof message !== "string" || message.trim().length === 0) {
+    return sendJson(res, 400, { error: "Invalid message" });
+  }
+
+  const key = sessionId || req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown";
+  if (isRateLimited(key)) {
+    return sendJson(res, 429, { error: "Too many requests. Please slow down." });
+  }
+
+  const cleanedMeta = meta && typeof meta === "object" && !Array.isArray(meta) ? meta : {};
+
+  const payload = {
+    type: "chat",
+    message: message.trim(),
+    sessionId: sessionId || null,
+    meta: cleanedMeta,
+  };
+
   try {
-    if (req.method === "GET") {
-      return res
-        .status(200)
-        .json({ ok: true, note: "Use POST to chat" });
-    }
-
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    let body;
-    try {
-      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON" });
-    }
-
-    const { message, sessionId } = body || {};
-    if (!message) {
-      return res.status(400).json({ error: "Missing message" });
-    }
-
-    // 🧪 MODO PRUEBA
-    if (message === "__ping__") {
-      return res.status(200).json({
-        reply: "pong",
-        actions: [],
-        sessionId: sessionId || null,
-      });
-    }
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
-    }
-
-    const client = new OpenAI({ apiKey });
-
-    const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "Eres el asistente de atención a clientes de INFINEUM. Responde claro, profesional y humano.",
-        },
-        { role: "user", content: message },
-      ],
-    });
-
-    return res.status(200).json({
-      reply: completion.choices[0].message.content,
-      actions: [],
-      sessionId: sessionId || null,
-    });
-  } catch (err) {
-    console.error("CHAT ERROR:", err);
-    return res.status(500).json({
-      error: "Chat failed",
-      message: err.message,
-      status: err.status,
-      code: err.code,
+    const { data, status } = await forwardToN8n(payload);
+    return sendJson(res, status, data);
+  } catch (error) {
+    const status = error.statusCode || error.status || 502;
+    return sendJson(res, status, {
+      error: "Chat forwarding failed",
+      message: error.message,
     });
   }
 };
