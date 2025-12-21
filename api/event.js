@@ -1,6 +1,9 @@
 const { setCors } = require("./_cors");
+ codex/fix-backend-not-connected-state-9865ni
+=======
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
+ main
 
 module.exports = async function handler(req, res) {
   setCors(req, res, ["POST", "OPTIONS"]);
@@ -13,6 +16,44 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
+ codex/fix-backend-not-connected-state-9865ni
+  let body;
+  try {
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ error: "Invalid JSON" });
+  }
+
+  const webhookUrl = process.env.N8N_WEBHOOK_URL;
+  const payload = body ?? {};
+
+  console.log("EVENT RECEIVED:", payload);
+
+  if (!webhookUrl) {
+    return res.status(200).json({ ok: true });
+  }
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    let responseData = null;
+    const text = await response.text();
+    try {
+      responseData = text ? JSON.parse(text) : null;
+    } catch {
+      responseData = text || null;
+    }
+
+    return res.status(response.ok ? 200 : response.status).json({
+      ok: response.ok,
+      status: response.status,
+      data: responseData,
+    });
+=======
   const body = parseRequestBody(req, res);
   if (!body) return;
 
@@ -53,6 +94,7 @@ module.exports = async function handler(req, res) {
   try {
     const { data, status } = await forwardToN8n(payload);
     return sendJson(res, status, data);
+ main
   } catch (error) {
     const status = error.statusCode || error.status || 502;
     return sendJson(res, status, {
