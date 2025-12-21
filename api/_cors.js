@@ -1,8 +1,4 @@
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://infinium.services",
-  "https://localhost:3000",
-  "http://localhost:3000",
-];
+const DEFAULT_ALLOWED_ORIGINS = ["https://infinium.services", "http://localhost:3000"];
 
 function parseAllowedOrigins() {
   const raw = process.env.ALLOWED_ORIGINS;
@@ -30,7 +26,7 @@ function setCors(req, res, methods) {
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 

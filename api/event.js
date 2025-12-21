@@ -22,7 +22,15 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 400, { error: "Invalid event" });
   }
 
-  const key = sessionId || req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "unknown";
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const normalizedForwardedFor =
+    typeof forwardedFor === "string"
+      ? forwardedFor.split(",")[0].trim()
+      : Array.isArray(forwardedFor)
+        ? forwardedFor[0]
+        : undefined;
+
+  const key = sessionId || normalizedForwardedFor || req.socket?.remoteAddress || "unknown";
   if (isRateLimited(key)) {
     return sendJson(res, 429, { error: "Too many requests. Please slow down." });
   }
