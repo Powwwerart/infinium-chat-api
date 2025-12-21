@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>INFINIUM | Asistente IA</title>
+    <style>
+      :root {
+        --bg: #0c1017;
+        --bg-alt: #111827;
+        --text: #e5e7eb;
+        --muted: #94a3b8;
+        --accent: #38f2c1;
+        --accent-2: #f0b429;
+        --card: rgba(17, 24, 39, 0.7);
+        --border: rgba(255, 255, 255, 0.08);
+        --shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+        --glow: 0 0 40px rgba(56, 242, 193, 0.18);
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: radial-gradient(circle at 20% 20%, rgba(56, 242, 193, 0.08), transparent 35%),
+          radial-gradient(circle at 80% 30%, rgba(240, 180, 41, 0.08), transparent 35%),
+          var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      header {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .hero {
+        min-height: 92vh;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 48px;
+        align-items: center;
+        padding: 72px clamp(24px, 4vw, 96px);
+      }
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(145deg, rgba(56, 242, 193, 0.09), rgba(240, 180, 41, 0.05));
+        opacity: 0.6;
+        pointer-events: none;
+        filter: blur(45px);
+      }
+
+      .hero-card {
+        position: relative;
+        z-index: 1;
+        background: linear-gradient(180deg, rgba(17, 24, 39, 0.9), rgba(17, 24, 39, 0.8));
+        padding: clamp(24px, 3vw, 36px);
+        border-radius: 24px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow), var(--glow);
+      }
+
+      .brand-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(56, 242, 193, 0.08);
+        border: 1px solid rgba(56, 242, 193, 0.35);
+        color: var(--text);
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      h1 {
+        margin: 16px 0 12px;
+        font-size: clamp(40px, 7vw, 64px);
+        letter-spacing: 0.06em;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .subheadline {
+        margin: 0 0 28px;
+        font-size: 18px;
+        max-width: 640px;
+        color: #cbd5e1;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 22px;
+      }
+
+      .btn {
+        border: none;
+        border-radius: 14px;
+        padding: 14px 18px;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease,
+          color 180ms ease, border-color 180ms ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+      }
+
+      .btn-primary {
+        background: linear-gradient(120deg, #22d3ee, #38f2c1);
+        color: #0f172a;
+        box-shadow: 0 12px 40px rgba(56, 242, 193, 0.35);
+        border: none;
+      }
+
+      .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .btn-whatsapp {
+        background: linear-gradient(120deg, #22c55e, #16a34a);
+        color: #f8fafc;
+        box-shadow: 0 10px 32px rgba(34, 197, 94, 0.35);
+        border: none;
+      }
+
+      .btn:hover,
+      .btn:focus-visible {
+        transform: translateY(-2px);
+        outline: none;
+      }
+
+      .btn-primary:hover,
+      .btn-primary:focus-visible {
+        box-shadow: 0 18px 48px rgba(56, 242, 193, 0.55);
+      }
+
+      .btn-whatsapp:hover,
+      .btn-whatsapp:focus-visible {
+        box-shadow: 0 16px 40px rgba(34, 197, 94, 0.5);
+      }
+
+      .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      .pill {
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border);
+        color: #d1d5db;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .hero-visual {
+        position: relative;
+        z-index: 1;
+        padding: clamp(20px, 3vw, 28px);
+        background: linear-gradient(160deg, rgba(17, 24, 39, 0.82), rgba(17, 24, 39, 0.6));
+        border-radius: 26px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .hero-visual::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 70% 30%, rgba(56, 242, 193, 0.2), transparent 35%),
+          radial-gradient(circle at 20% 80%, rgba(240, 180, 41, 0.18), transparent 30%);
+        pointer-events: none;
+      }
+
+      .hero-visual .card {
+        position: relative;
+        background: rgba(17, 24, 39, 0.9);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+      }
+
+      .hero-visual .card h3 {
+        margin: 0 0 6px;
+      }
+
+      .label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        width: fit-content;
+      }
+
+      main {
+        padding: 0 clamp(24px, 4vw, 96px) 80px;
+      }
+
+      section {
+        margin: 32px 0 0;
+      }
+
+      .section-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: clamp(24px, 3vw, 36px);
+        box-shadow: var(--shadow);
+      }
+
+      .section-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 18px;
+        font-size: 22px;
+        letter-spacing: 0.02em;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .bullet-card {
+        padding: 16px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+        display: grid;
+        gap: 6px;
+      }
+
+      .bullet-card strong {
+        font-size: 16px;
+      }
+
+      .tag {
+        padding: 6px 10px;
+        border-radius: 10px;
+        background: rgba(56, 242, 193, 0.12);
+        color: #a7f3d0;
+        font-weight: 700;
+        width: fit-content;
+      }
+
+      .disclaimer {
+        margin-top: 12px;
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.04);
+        padding: 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        font-size: 14px;
+      }
+
+      .chat-launcher {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .launcher-btn {
+        background: linear-gradient(120deg, #22d3ee, #38f2c1);
+        color: #0f172a;
+        border: none;
+        border-radius: 999px;
+        padding: 14px 18px;
+        font-weight: 800;
+        font-size: 15px;
+        box-shadow: 0 16px 46px rgba(56, 242, 193, 0.55);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: transform 180ms ease, box-shadow 180ms ease;
+      }
+
+      .launcher-btn:hover,
+      .launcher-btn:focus-visible {
+        transform: translateY(-2px) scale(1.01);
+        outline: 2px solid rgba(56, 242, 193, 0.4);
+      }
+
+      .launcher-btn:active {
+        transform: translateY(1px);
+      }
+
+      .chat-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(12, 16, 23, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        padding: 20px;
+      }
+
+      .chat-modal.active {
+        display: flex;
+      }
+
+      .chat-window {
+        width: min(480px, 100%);
+        background: var(--bg-alt);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 28px 60px rgba(0, 0, 0, 0.65);
+        display: flex;
+        flex-direction: column;
+        max-height: 88vh;
+      }
+
+      .chat-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(120deg, rgba(34, 211, 238, 0.08), rgba(56, 242, 193, 0.08));
+      }
+
+      .chat-body {
+        padding: 16px;
+        overflow-y: auto;
+        display: grid;
+        gap: 10px;
+        max-height: 62vh;
+        scroll-behavior: smooth;
+      }
+
+      .bubble {
+        padding: 12px 14px;
+        border-radius: 14px;
+        max-width: 85%;
+        word-break: break-word;
+        font-size: 14px;
+        border: 1px solid var(--border);
+      }
+
+      .bubble.user {
+        margin-left: auto;
+        background: rgba(56, 242, 193, 0.12);
+        color: #e5fffa;
+        border-color: rgba(56, 242, 193, 0.5);
+      }
+
+      .bubble.bot {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text);
+      }
+
+      .chat-footer {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 8px;
+      }
+
+      .chat-footer input {
+        flex: 1;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+      }
+
+      .chat-footer button {
+        border-radius: 12px;
+        border: none;
+        background: linear-gradient(120deg, #22d3ee, #38f2c1);
+        color: #0f172a;
+        font-weight: 700;
+        padding: 0 14px;
+        cursor: pointer;
+        box-shadow: 0 12px 32px rgba(56, 242, 193, 0.45);
+      }
+
+      .close-btn {
+        background: none;
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 10px;
+        padding: 6px 10px;
+        cursor: pointer;
+      }
+
+      @media (max-width: 960px) {
+        .hero {
+          grid-template-columns: 1fr;
+          padding-top: 40px;
+          min-height: 100vh;
+        }
+
+        .cta-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .btn {
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 540px) {
+        .chat-window {
+          width: 100%;
+          max-height: 90vh;
+        }
+
+        .chat-body {
+          max-height: 64vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="hero">
+        <div class="hero-card">
+          <div class="brand-pill">Vital Health Global · IA Premium</div>
+          <h1>INFINIUM</h1>
+          <p class="subheadline">
+            Asistente IA + atención + compra guiada de Vital Health Global. Conversa, resuelve
+            dudas y finaliza tu compra con confianza.
+          </p>
+          <div class="cta-row">
+            <button class="btn btn-primary" id="hero-primary">Hablar con el Asistente</button>
+            <a class="btn btn-secondary" href="#beneficios" id="hero-secondary">Ver productos</a>
+            <a class="btn btn-whatsapp" id="hero-whatsapp" href="https://wa.me/?text=Quiero%20saber%20m%C3%A1s%20de%20INFINIUM" target="_blank" rel="noreferrer">
+              WhatsApp rápido
+            </a>
+          </div>
+          <div class="stats-row">
+            <div class="pill">⚡ Respuestas inmediatas</div>
+            <div class="pill">🛍️ Compra guiada</div>
+            <div class="pill">🛡️ Seguro y privado</div>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="label">Tu asistente 24/7</div>
+          <div class="card">
+            <h3>Flujo sin fricción</h3>
+            <p class="muted">
+              Desde el escaneo QR hasta la recomendación personalizada y la compra en minutos.
+            </p>
+            <div class="grid">
+              <div class="bullet-card">
+                <strong>1. Escanea o entra</strong>
+                <span class="muted">El QR inicia sesión segura en segundos.</span>
+              </div>
+              <div class="bullet-card">
+                <strong>2. Habla con INFINIUM</strong>
+                <span class="muted">Dialoga, aclara dudas y recibe pasos claros.</span>
+              </div>
+              <div class="bullet-card">
+                <strong>3. Compra guiada</strong>
+                <span class="muted">Recomendaciones precisas y CTA listos.</span>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="tag">QR sin filas</div>
+            <p class="muted">
+              Si prefieres usar el QR, solo escanea y el asistente continúa la conversación donde
+              la dejaste, sin líneas ni pasos extra.
+            </p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <div class="section-card">
+          <h2 class="section-title">Cómo funciona</h2>
+          <div class="grid">
+            <div class="bullet-card">
+              <strong>QR o enlace directo</strong>
+              <span>Escanea el QR o entra desde el enlace y detectamos tu sesión al instante.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Asistente IA en vivo</strong>
+              <span>Habla natural; recibes respuestas claras, acciones y CTA listos.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Recomendación personalizada</strong>
+              <span>Contexto de tu visita + UTM para guiarte a la mejor opción.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Compra sin fricciones</strong>
+              <span>Clics directos a checkout o contacto con un especialista.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="beneficios">
+        <div class="section-card">
+          <h2 class="section-title">Beneficios</h2>
+          <div class="grid">
+            <div class="bullet-card">
+              <strong>Rápido</strong>
+              <span>Responde en segundos y mantiene tu sesión activa.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Guiado</strong>
+              <span>CTA claros: hablar, comprar o agendar sin confusión.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Soporte humano</strong>
+              <span>Eleva a un asesor vía WhatsApp cuando lo necesites.</span>
+            </div>
+            <div class="bullet-card">
+              <strong>Seguro</strong>
+              <span>Datos protegidos, sin compartir información sensible.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-card">
+          <h2 class="section-title">Disclaimer</h2>
+          <div class="disclaimer">
+            INFINIUM no ofrece consejo médico. Las recomendaciones son informativas; los resultados
+            pueden variar. Consulta a tu especialista antes de tomar decisiones de salud o compra.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="chat-launcher">
+      <button class="launcher-btn" id="open-chat">
+        🤖 Hablar con el Asistente
+      </button>
+    </div>
+
+    <div class="chat-modal" id="chat-modal" aria-hidden="true">
+      <div class="chat-window" role="dialog" aria-label="Chat con INFINIUM">
+        <div class="chat-header">
+          <div>
+            <div class="label">INFINIUM Asistente</div>
+            <div class="muted">Respuestas en tiempo real</div>
+          </div>
+          <button class="close-btn" id="close-chat">Cerrar</button>
+        </div>
+        <div class="chat-body" id="chat-body">
+          <div class="bubble bot">
+            ¡Hola! Soy INFINIUM. Pregunta sobre productos y te guío a comprar en segundos.
+          </div>
+        </div>
+        <form class="chat-footer" id="chat-form">
+          <input id="chat-input" type="text" placeholder="Escribe tu mensaje..." aria-label="Mensaje" required />
+          <button type="submit">Enviar</button>
+        </form>
+      </div>
+    </div>
+
+    <script type="module">
+      const backendBaseUrl = window.BACKEND_BASE_URL || "";
+      const sessionStorageKey = "infinium-session-id";
+      const metaStorageKey = "infinium-meta";
+      const chatBody = document.getElementById("chat-body");
+      const chatModal = document.getElementById("chat-modal");
+      const chatForm = document.getElementById("chat-form");
+      const chatInput = document.getElementById("chat-input");
+      const openChatBtn = document.getElementById("open-chat");
+      const closeChatBtn = document.getElementById("close-chat");
+      const heroPrimary = document.getElementById("hero-primary");
+      const heroSecondary = document.getElementById("hero-secondary");
+      const heroWhatsapp = document.getElementById("hero-whatsapp");
+
+      const safeGtag = (...args) => {
+        if (typeof window.gtag === "function") {
+          window.gtag(...args);
+        }
+      };
+
+      const generateSessionId = () => {
+        if (crypto?.randomUUID) return crypto.randomUUID();
+        return "session-" + Math.random().toString(36).slice(2);
+      };
+
+      const loadSession = () => {
+        const stored = localStorage.getItem(sessionStorageKey);
+        if (stored) return stored;
+        const sid = generateSessionId();
+        localStorage.setItem(sessionStorageKey, sid);
+        return sid;
+      };
+
+      const loadMeta = () => {
+        const cached = localStorage.getItem(metaStorageKey);
+        if (cached) {
+          try {
+            return JSON.parse(cached);
+          } catch (e) {
+            localStorage.removeItem(metaStorageKey);
+          }
+        }
+        const params = new URLSearchParams(window.location.search);
+        const meta = {
+          site_id: params.get("site_id") || params.get("s") || "infinium",
+          team_id: params.get("team_id") || params.get("t") || "vital-health",
+          campaign_id:
+            params.get("campaign_id") ||
+            params.get("c") ||
+            params.get("utm_campaign") ||
+            "landing",
+          utm_source: params.get("utm_source") || params.get("utm_source".toUpperCase()) || "",
+          utm_medium: params.get("utm_medium") || "",
+          utm_content: params.get("utm_content") || "",
+          page: window.location.href,
+          ts: new Date().toISOString(),
+        };
+        localStorage.setItem(metaStorageKey, JSON.stringify(meta));
+        return meta;
+      };
+
+      let sessionId = loadSession();
+      let meta = loadMeta();
+
+      const trackEvent = async (event, data = {}) => {
+        safeGtag("event", event, data);
+        try {
+          await fetch(`${backendBaseUrl}/api/event`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              event,
+              sessionId,
+              meta,
+              data,
+            }),
+          });
+        } catch (err) {
+          console.warn("Event not sent", err);
+        }
+      };
+
+      const appendBubble = (text, type = "bot") => {
+        const div = document.createElement("div");
+        div.className = `bubble ${type}`;
+        div.textContent = text;
+        chatBody.appendChild(div);
+        chatBody.scrollTop = chatBody.scrollHeight;
+      };
+
+      const sendChat = async (message) => {
+        appendBubble(message, "user");
+        chatInput.value = "";
+        try {
+          const res = await fetch(`${backendBaseUrl}/api/chat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message,
+              sessionId,
+              meta: { ...meta, page: window.location.href, ts: new Date().toISOString() },
+            }),
+          });
+          const data = await res.json();
+          if (data?.reply) appendBubble(data.reply, "bot");
+          if (Array.isArray(data?.actions) && data.actions.length > 0) {
+            data.actions.forEach((action) => {
+              appendBubble(`Acción sugerida: ${action.type || "acción"} - ${action.label || ""}`, "bot");
+            });
+          }
+          safeGtag("event", "chat_message_sent");
+        } catch (error) {
+          appendBubble("No pudimos enviar tu mensaje ahora. Intenta nuevamente.", "bot");
+        }
+      };
+
+      const openChat = () => {
+        chatModal.classList.add("active");
+        chatModal.setAttribute("aria-hidden", "false");
+        chatInput.focus();
+        trackEvent("chat_opened");
+      };
+
+      const closeChat = () => {
+        chatModal.classList.remove("active");
+        chatModal.setAttribute("aria-hidden", "true");
+      };
+
+      chatForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (!message) return;
+        sendChat(message);
+      });
+
+      openChatBtn.addEventListener("click", () => {
+        openChat();
+      });
+
+      closeChatBtn.addEventListener("click", () => {
+        closeChat();
+      });
+
+      heroPrimary.addEventListener("click", () => {
+        openChat();
+        trackEvent("cta_primary");
+      });
+
+      heroSecondary.addEventListener("click", () => {
+        trackEvent("cta_secondary");
+      });
+
+      heroWhatsapp.addEventListener("click", () => {
+        trackEvent("cta_whatsapp");
+      });
+
+      chatModal.addEventListener("click", (e) => {
+        if (e.target === chatModal) {
+          closeChat();
+        }
+      });
+
+      const ping = async () => {
+        try {
+          await fetch(`${backendBaseUrl}/api/ping`);
+        } catch (e) {
+          console.warn("Ping failed", e);
+        }
+      };
+
+      ping();
+    </script>
+  </body>
+</html>

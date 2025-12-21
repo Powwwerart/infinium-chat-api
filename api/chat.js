@@ -1,3 +1,4 @@
+ codex/fix-backend-not-connected-state-9865ni
 const OpenAI = require("openai");
 const { setCors } = require("./_cors");
 
@@ -52,12 +53,20 @@ function buildActions(message) {
 module.exports = async function handler(req, res) {
   // ✅ 2) SIEMPRE poner headers CORS al inicio
   setCors(req, res, ["POST", "GET", "OPTIONS"]);
+=======
+const { setCors } = require("./_cors");
+const { isRateLimited } = require("./_rateLimit");
+const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
 
-  // ✅ 3) Responder preflight ANTES de todo
+module.exports = async function handler(req, res) {
+  setCors(req, res, ["POST", "OPTIONS"]);
+ main
+
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
+ codex/fix-backend-not-connected-state-9865ni
   try {
     if (req.method === "GET") {
       return res
@@ -68,35 +77,51 @@ module.exports = async function handler(req, res) {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method not allowed" });
     }
+=======
+  if (req.method !== "POST") {
+    return sendJson(res, 405, { error: "Method not allowed" });
+  }
 
-    let body;
-    try {
-      body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON" });
-    }
+  const body = parseRequestBody(req, res);
+  if (!body) return; // parseRequestBody already responded
 
+  const { message, sessionId, meta } = body;
+ main
+
+  if (typeof message !== "string" || message.trim().length === 0) {
+    return sendJson(res, 400, { error: "Invalid message" });
+  }
+
+ codex/fix-backend-not-connected-state-9865ni
     const { message, sessionId, meta } = body || {};
     if (!message) {
       return res.status(400).json({ error: "Missing message" });
     }
+=======
+  const forwardedFor = req.headers["x-forwarded-for"];
+  const normalizedForwardedFor =
+    typeof forwardedFor === "string"
+      ? forwardedFor.split(",")[0].trim()
+      : Array.isArray(forwardedFor)
+        ? forwardedFor[0]
+        : undefined;
+ main
 
-    // 🧪 MODO PRUEBA
-    if (message === "__ping__") {
-      return res.status(200).json({
-        reply: "pong",
-        actions: [],
-        sessionId: sessionId || null,
-      });
-    }
+  const key = sessionId || normalizedForwardedFor || req.socket?.remoteAddress || "unknown";
+  if (isRateLimited(key)) {
+    return sendJson(res, 429, { error: "Too many requests. Please slow down." });
+  }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
-    }
+  const cleanedMeta = meta && typeof meta === "object" && !Array.isArray(meta) ? meta : {};
 
-    const client = new OpenAI({ apiKey });
+  const payload = {
+    type: "chat",
+    message: message.trim(),
+    sessionId: sessionId || null,
+    meta: cleanedMeta,
+  };
 
+ codex/fix-backend-not-connected-state-9865ni
     const actions = buildActions(message);
 
     const metaContext = meta
@@ -114,11 +139,23 @@ module.exports = async function handler(req, res) {
             "Si el usuario pide comprar, unirse o contactar, invita a usar las acciones proporcionadas y complementa con un breve resumen.",
             metaContext,
           ].join(" "),
+=======
+  if (!process.env.N8N_WEBHOOK_URL) {
+    return sendJson(res, 200, {
+      reply: "Sistema en configuración. Ya recibí tu mensaje. En breve te atiendo.",
+      actions: [
+        {
+          type: "whatsapp",
+          label: "WhatsApp",
+          phone: "19565505115",
+          text: "Hola, vengo de INFINEUM. Quiero información.",
+ main
         },
-        { role: "user", content: message },
       ],
     });
+  }
 
+ codex/fix-backend-not-connected-state-9865ni
     return res.status(200).json({
       reply: completion.choices[0].message.content,
       actions,
@@ -131,6 +168,16 @@ module.exports = async function handler(req, res) {
       message: err.message,
       status: err.status,
       code: err.code,
+=======
+  try {
+    const { data, status } = await forwardToN8n(payload);
+    return sendJson(res, status, data);
+  } catch (error) {
+    const status = error.statusCode || error.status || 502;
+    return sendJson(res, status, {
+      error: "Chat forwarding failed",
+      message: error.message,
+ main
     });
   }
 };
