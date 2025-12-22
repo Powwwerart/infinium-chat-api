@@ -35,7 +35,7 @@ function setCors(req, res, methods) {
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-infinium-secret"
   res.setHeader("Access-Control-Max-Age", "86400");
 }
 
