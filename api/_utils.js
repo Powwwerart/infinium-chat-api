@@ -1,14 +1,21 @@
-const { DEFAULT_ALLOWED_ORIGINS } = require("./_cors");
-
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 function parseRequestBody(req, res) {
+  let body;
+
   try {
-    return typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
   } catch {
     res.status(400).json({ error: "Invalid JSON" });
     return null;
   }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    res.status(400).json({ error: "Invalid JSON body" });
+    return null;
+  }
+
+  return body;
 }
 
 function sendJson(res, status, payload) {
@@ -50,12 +57,11 @@ async function forwardToN8n(payload) {
     try {
       data = text ? JSON.parse(text) : {};
     } catch {
-      data = {};
+      data = { raw: text };
     }
 
-    const actions = Array.isArray(data?.actions) ? data.actions : [];
     return {
-      data: { ...(data || {}), actions },
+      data,
       status: response.status,
     };
   } catch (error) {
@@ -64,6 +70,8 @@ async function forwardToN8n(payload) {
       timeoutError.statusCode = 504;
       throw timeoutError;
     }
+
+    error.statusCode = error.statusCode || error.status || 502;
     throw error;
   } finally {
     clearTimeout(timeout);
@@ -71,7 +79,6 @@ async function forwardToN8n(payload) {
 }
 
 module.exports = {
-  DEFAULT_ALLOWED_ORIGINS,
   forwardToN8n,
   parseRequestBody,
   sendJson,
