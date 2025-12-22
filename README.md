@@ -1,37 +1,53 @@
 # INFINEUM Chat API
 
-Backend bridge between the public INFINEUM frontend and the internal n8n automation. The API normalizes chat and event payloads, validates requests, applies a simple in-memory rate limit, and forwards everything to the configured n8n webhook with a shared secret header.
+Backend bridge between the public INFINEUM frontend and the internal n8n automation. The API validates requests, applies simple rate limiting, and forwards chat/event payloads to the configured n8n webhook with the shared secret header. It does **not** call OpenAI or apply business logic.
 
 ## Environment variables
 
-Create a `.env` file (see `.env.example`) with:
+Create a `.env` file with:
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `N8N_WEBHOOK_URL` | n8n webhook URL that receives normalized payloads. | `https://arturojr.app.n8n.cloud/webhook-test/infinium-event` |
+| `N8N_WEBHOOK_URL` | n8n webhook URL that receives forwarded payloads. | `https://example.n8n.cloud/webhook/infinium` |
 | `N8N_WEBHOOK_SECRET` | Secret sent as `x-infinium-secret` header to n8n. | `<string-largo>` |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed origins for CORS. | `https://infinium.services,https://localhost:3000,http://localhost:3000` |
+| `ALLOWED_ORIGINS` | Optional comma-separated list of allowed origins for CORS (defaults listed below). | `https://infinium.services,http://localhost:3000` |
+| `CORS_ALLOW_ALL_ORIGINS` | Optional. Set to `true` only for debugging to allow `*`. | `true` |
 | `NODE_ENV` | Node environment. | `production` |
 
-If `N8N_WEBHOOK_URL` is not configured, `/api/chat` returns a stable fallback reply with a WhatsApp action and `/api/event` returns `{ ok: true, message: "event accepted (n8n not configured yet)" }`, both with HTTP 200. This prevents misconfiguration from causing 500 errors while keeping CORS and rate limiting intact.
+Both `N8N_WEBHOOK_URL` and `N8N_WEBHOOK_SECRET` are required for forwarding. Requests fail with a 500 if either is missing.
 
 ## Endpoints
 
-- `POST /api/chat` — Validates `message` (non-empty string) and forwards normalized payload to n8n. Returns the exact `reply` and `actions` from n8n (defaults `actions` to `[]`).
-- `POST /api/event` — Validates `event` (non-empty string) and forwards normalized payload to n8n. Returns the exact `reply` and `actions` from n8n (defaults `actions` to `[]`).
-- `GET /api/ping` — Simple health endpoint with timestamp (CORS-enabled).
-- `GET /api/health` — Simple health endpoint returning `{ ok, service, ts }`.
+- `GET /api` — Lists available routes.
+- `GET /api/ping` — Health endpoint with timestamp (CORS-enabled).
+- `GET /api/health` — Health endpoint returning `{ ok, service, ts, n8n: { webhookUrlConfigured, webhookSecretConfigured } }`.
+- `POST /api/chat` — Validates the body, applies rate limiting, assigns `type: "chat"` and an ISO `timestamp` (if missing), then forwards the payload to n8n and relays the response.
+- `POST /api/event` — Applies rate limiting, assigns `type: "event"` and an ISO `timestamp` (if missing), then forwards the payload to n8n and relays the response.
+- `POST /api/message` — Alias of `/api/chat`.
 
 ### Payload format sent to n8n
 
+`POST /api/chat`
+
 ```json
 {
-  "type": "chat" | "event",
-  "message": "<string>", // only for type=chat
-  "event": "<string>",   // only for type=event
+  "type": "chat",
+  "message": "<string>",
   "sessionId": "<string|null>",
-  "meta": { "site_id": "...", "team_id": "...", "campaign_id": "...", "page": "...", "ts": "..." },
-  "data": { /* event-specific data */ } // only for type=event
+  "meta": { "s": "...", "t": "...", "c": "..." },
+  "timestamp": "<ISO_DATE>",
+  "...": "additional fields are forwarded untouched"
+}
+```
+
+`POST /api/event`
+
+```json
+{
+  "type": "event",
+  "sessionId": "<string|null>",
+  "timestamp": "<ISO_DATE>",
+  "...": "original event fields (including QR metadata)"
 }
 ```
 
@@ -48,22 +64,26 @@ Basic in-memory limiter: 20 requests per 60 seconds per `sessionId` (falls back 
 
 - Requests to n8n time out after 10s and return `504`.
 - Other forwarding errors return `502` with a message.
+- Missing webhook configuration returns `500`.
 - Invalid payloads return `400`.
 - Only `POST` is allowed for `/api/chat` and `/api/event`; `OPTIONS` is handled for CORS preflight.
 
 ## CORS
 
-Allowed origins are taken from `ALLOWED_ORIGINS`. If not set, defaults to:
+Allowed origins default to:
 
 - `https://infinium.services`
-- `https://localhost:3000`
 - `http://localhost:3000`
+- `http://localhost:5173`
+- `http://localhost:4173`
+
+Override with `ALLOWED_ORIGINS` (comma-separated). Set `CORS_ALLOW_ALL_ORIGINS=true` only for temporary debugging.
 
 ## Running locally
 
 ```bash
 npm install
-vercel dev   # or `npm run dev` if configured
+vercel dev   # or your platform's dev command
 ```
 
 ## Testing with curl
@@ -77,12 +97,11 @@ curl -i -X POST http://localhost:3000/api/chat \
     "message":"hola",
     "sessionId":"uuid",
     "meta":{
-      "site_id":"barberia23",
-      "team_id":"teamA",
-      "campaign_id":"flyer01",
-      "page":"https://infinium.services/?s=...&t=...&c=...",
-      "ts":"2025-12-20T12:00:00Z"
-    }
+      "s":"barberia23",
+      "t":"teamA",
+      "c":"flyer01"
+    },
+    "timestamp":"2025-12-20T12:00:00Z"
   }'
 ```
 
@@ -95,22 +114,21 @@ curl -i -X POST http://localhost:3000/api/event \
     "event":"cta_click",
     "sessionId":"uuid",
     "meta":{
-      "site_id":"barberia23",
-      "team_id":"teamA",
-      "campaign_id":"flyer01",
-      "page":"https://infinium.services/?s=...&t=...&c=...",
-      "ts":"2025-12-20T12:00:00Z"
+      "s":"barberia23",
+      "t":"teamA",
+      "c":"flyer01"
     },
     "data":{
       "cta":"buy",
       "url":"https://..."
-    }
+    },
+    "timestamp":"2025-12-20T12:00:00Z"
   }'
 ```
 
 ## Deploying to Vercel
 
 1. Create a new Vercel project pointing to this repository.
-2. Set environment variables (`N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `ALLOWED_ORIGINS`, `NODE_ENV`) in the Vercel dashboard.
+2. Set environment variables (`N8N_WEBHOOK_URL`, `N8N_WEBHOOK_SECRET`, `ALLOWED_ORIGINS`, `CORS_ALLOW_ALL_ORIGINS`, `NODE_ENV`) in the Vercel dashboard.
 3. Deploy. Vercel will expose the API routes under `/api/*`.
 4. Test with the curl commands above using your Vercel deployment URL.

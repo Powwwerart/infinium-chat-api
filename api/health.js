@@ -1,7 +1,6 @@
 const { setCors } = require("./_cors");
 
 module.exports = (req, res) => {
- codex/fix-backend-not-connected-state-9865ni
   setCors(req, res, ["GET", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {
@@ -9,17 +8,17 @@ module.exports = (req, res) => {
   }
 
   if (req.method !== "GET") {
+    res.setHeader("Allow", "GET, OPTIONS");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  res
-    .status(200)
-    .json({ ok: true, service: "infinium-chat-api", ts: new Date().toISOString() });
-=======
-  res.status(200).json({
+  return res.status(200).json({
     ok: true,
     service: "infinium-chat-api",
+    n8n: {
+      webhookUrlConfigured: Boolean(process.env.N8N_WEBHOOK_URL),
+      webhookSecretConfigured: Boolean(process.env.N8N_WEBHOOK_SECRET),
+    },
     ts: new Date().toISOString(),
   });
- main
 };
