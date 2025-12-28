@@ -105,6 +105,22 @@ curl -i -X POST http://localhost:3000/api/chat \
   }'
 ```
 
+### Manual debug snippet
+
+```bash
+curl -i -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message":"hola",
+    "sessionId":"debug",
+    "meta":{
+      "site_id":"web",
+      "team_id":"t",
+      "campaign_id":"c"
+    }
+  }'
+```
+
 ### Event
 
 ```bash
