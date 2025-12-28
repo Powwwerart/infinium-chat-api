@@ -69,13 +69,36 @@ module.exports = async function handler(req, res) {
     assistant_id: ASSISTANT_ID,
   });
 
-  let status = "queued";
-  while (status !== "completed") {
-    const r = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    status = r.status;
-    if (status === "failed") {
-      return sendJson(res, 500, { error: "Assistant failed" });
-    }
+let status = "queued";
+let runResult;
+
+while (true) {
+  runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+  status = runResult.status;
+
+  if (status === "completed") break;
+
+  if (
+    status === "failed" ||
+    status === "cancelled" ||
+    status === "expired" ||
+    status === "incomplete"
+  ) {
+    return sendJson(res, 500, {
+      error: "Assistant did not complete",
+      status,
+    });
+  }
+
+  if (status === "requires_action") {
+    return sendJson(res, 200, {
+      reply: "Estoy procesando tu solicitud, ¿puedes reformularla?",
+    });
+  }
+
+  await new Promise(r => setTimeout(r, 400));
+}
+
   }
 
   const messages = await openai.beta.threads.messages.list(thread.id);
