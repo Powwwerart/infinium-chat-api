@@ -1,4 +1,4 @@
-const { setCors } = require("./_cors");
+const setCors = require("./_cors");
 const { sendJson } = require("./_utils");
 
 const ROUTES = ["/api/ping", "/api/health", "/api/chat", "/api/event", "/api/message"];
