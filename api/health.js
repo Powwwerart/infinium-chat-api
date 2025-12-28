@@ -1,4 +1,4 @@
-const { setCors } = require("./_cors");
+const setCors = require("./_cors");
 
 module.exports = (req, res) => {
   setCors(req, res, ["GET", "OPTIONS"]);
