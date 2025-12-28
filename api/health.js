@@ -1,4 +1,8 @@
+const { initializeSpeedInsights } = require("./_speedInsights");
 const { setCors } = require("./_cors");
+
+// Initialize Speed Insights
+initializeSpeedInsights();
 
 module.exports = (req, res) => {
   setCors(req, res, ["GET", "OPTIONS"]);

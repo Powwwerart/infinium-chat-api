@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "type": "commonjs",
   "dependencies": {
+    "@vercel/speed-insights": "^1.3.1",
     "openai": "^4.0.0"
   }
 }

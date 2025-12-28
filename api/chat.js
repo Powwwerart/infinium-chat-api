@@ -1,9 +1,13 @@
+const { initializeSpeedInsights } = require("./_speedInsights");
 const { setCors } = require("./_cors");
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
 const OpenAI = require("openai");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const ASSISTANT_ID = "asst_rHXdB7U47CNanDF6kjrtlpzw";
+
+// Initialize Speed Insights
+initializeSpeedInsights();
 
 function getClientKey(req, sessionId) {
   if (sessionId) return sessionId;
