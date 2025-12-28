@@ -1,60 +1,32 @@
-const { setCors } = require("./_cors");
-const { isRateLimited } = require("./_rateLimit");
-const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
-
-function getClientKey(req, sessionId) {
-  if (sessionId) return sessionId;
-
-  const forwardedFor = req.headers["x-forwarded-for"];
-
-  if (typeof forwardedFor === "string") {
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  if (Array.isArray(forwardedFor) && forwardedFor.length > 0) {
-    return forwardedFor[0];
-  }
-
-  return req.socket?.remoteAddress || "unknown";
-}
+const setCors = require("./_cors");
+const { parseRequestBody, sendJson, forwardToN8n } = require("./_utils");
 
 module.exports = async function handler(req, res) {
   setCors(req, res, ["POST", "OPTIONS"]);
 
-  if (req.method === "OPTIONS") {
-    return res.status(204).end();
-  }
-
+  if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST, OPTIONS");
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
-  const body = parseRequestBody(req, res);
-  if (!body) return;
-
-  const { sessionId = null, timestamp, ...rest } = body;
-
-  const rateLimitKey = getClientKey(req, sessionId);
-  if (isRateLimited(rateLimitKey)) {
-    return sendJson(res, 429, { error: "Too many requests. Please slow down." });
-  }
-
-  const payload = {
-    ...rest,
-    type: "event",
-    sessionId,
-    timestamp: timestamp || new Date().toISOString(),
-  };
-
   try {
-    const { data, status } = await forwardToN8n(payload);
-    return sendJson(res, status, data);
-  } catch (error) {
-    const status = error.statusCode || error.status || 502;
-    return sendJson(res, status, {
-      error: "Event forwarding failed",
-      message: error.message,
+    const body = await parseRequestBody(req, res);
+    if (!body) return;
+
+    // forwardToN8n puede fallar si N8N_WEBHOOK_URL/SECRET no existen
+    const out = await forwardToN8n(body);
+
+    return sendJson(res, 200, {
+      ok: true,
+      forwarded: true,
+      n8n_status: out?.status,
+      n8n_data: out?.data,
     });
+  } catch (err) {
+    const msg = err?.message || "Event failed";
+    const status = err?.statusCode || err?.status || 500;
+
+    return sendJson(res, status, { ok: false, error: "Event failed", message: msg });
   }
 };
