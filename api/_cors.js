@@ -1,51 +1,51 @@
-const DEFAULT_ALLOWED_ORIGINS = [
-  "https://infinium.services",
-  "http://localhost:3000",
-  "http://localhost:5173",
-  "http://localhost:4173",
-];
+// api/_cors.js
+module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
+  const origin = req.headers.origin;
 
-function parseAllowedOrigins() {
-  const raw = process.env.ALLOWED_ORIGINS;
-  if (!raw) return DEFAULT_ALLOWED_ORIGINS;
-
-  return raw
+  // Lee env y lo convierte a lista limpia
+  const raw = process.env.ALLOWED_ORIGINS || "";
+  const allowed = raw
     .split(",")
-    .map((item) => item.trim())
+    .map((s) => s.trim())
     .filter(Boolean);
-}
 
-function getAllowedOrigin(requestOrigin) {
-  if (process.env.CORS_ALLOW_ALL_ORIGINS === "true") {
-    return "*";
+  // Permite wildcard con "*"
+  const allowAll = allowed.includes("*");
+
+  // Decide el origin permitido
+  const isAllowed =
+    allowAll ||
+    (origin && allowed.includes(origin)) ||
+    // si no hay origin (curl/postman/server-to-server), no bloquees
+    !origin;
+
+  if (isAllowed) {
+    // IMPORTANTE: si es allowAll y hay origin, refleja el origin para evitar problemas con credentials/proxies
+    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
   }
-
-  const allowedOrigins = parseAllowedOrigins();
-  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
-    return requestOrigin;
-  }
-
-  return allowedOrigins[0];
-}
-
-function setCors(req, res, methods) {
-  const origin = req?.headers?.origin;
-  const allowedOrigin = getAllowedOrigin(origin);
 
   res.setHeader("Vary", "Origin");
-  res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
   res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
   res.setHeader(
-  "Access-Control-Allow-Headers",
-  "Content-Type, Authorization, x-infinium-secret"
-);
-
+    "Access-Control-Allow-Headers",
+    [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-Infinium-Secret",
+      "X-Infinium-Site",
+      "X-Infinium-Team",
+      "X-Infinium-Campaign",
+    ].join(", ")
+  );
+  // Si NO usas cookies, déjalo en false (mejor). Si algún día usas cookies, lo activas.
+  res.setHeader("Access-Control-Allow-Credentials", "false");
   res.setHeader("Access-Control-Max-Age", "86400");
-}
 
-module.exports = {
-  DEFAULT_ALLOWED_ORIGINS,
-  getAllowedOrigin,
-  parseAllowedOrigins,
-  setCors,
+  // Si el origin NO está permitido, corta aquí con 403 para que lo veas claro en Network
+  if (!isAllowed) {
+    res.statusCode = 403;
+    res.end("CORS blocked: origin not allowed");
+    return;
+  }
 };
