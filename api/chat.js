@@ -1,6 +1,10 @@
+const { initializeSpeedInsights } = require("./_speedInsights");
 const { setCors } = require("./_cors");
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
+
+// Initialize Speed Insights
+initializeSpeedInsights();
 
 function getClientKey(req, sessionId) {
   if (sessionId) return sessionId;

@@ -1,5 +1,9 @@
+const { initializeSpeedInsights } = require("./_speedInsights");
 const { setCors } = require("./_cors");
 const { sendJson } = require("./_utils");
+
+// Initialize Speed Insights
+initializeSpeedInsights();
 
 const ROUTES = ["/api/ping", "/api/health", "/api/chat", "/api/event", "/api/message"];
 
