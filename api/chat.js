@@ -36,6 +36,13 @@ function pickTextFromAssistantMessages(messages) {
 }
 
 module.exports = async function handler(req, res) {
+  if (typeof setCors !== "function") {
+    return sendJson(res, 500, {
+      error: "setCors is not a function",
+      hint: "Check api/_cors.js export",
+    });
+  }
+
   // CORS primero SIEMPRE
   setCors(req, res, ["POST", "OPTIONS"]);
 

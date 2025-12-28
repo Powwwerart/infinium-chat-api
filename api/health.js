@@ -1,6 +1,12 @@
-const { setCors } = require("./_cors");
+const setCors = require("./_cors");
 
 module.exports = (req, res) => {
+  if (typeof setCors !== "function") {
+    return res
+      .status(500)
+      .json({ error: "setCors is not a function", hint: "Check api/_cors.js export" });
+  }
+
   setCors(req, res, ["GET", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {

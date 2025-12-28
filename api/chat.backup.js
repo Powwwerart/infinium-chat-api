@@ -1,4 +1,4 @@
-const { setCors } = require("./_cors");
+const setCors = require("./_cors");
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
 
@@ -19,6 +19,13 @@ function getClientKey(req, sessionId) {
 }
 
 module.exports = async function handler(req, res) {
+  if (typeof setCors !== "function") {
+    return sendJson(res, 500, {
+      error: "setCors is not a function",
+      hint: "Check api/_cors.js export",
+    });
+  }
+
   setCors(req, res, ["POST", "OPTIONS"]);
 
   if (req.method === "OPTIONS") {
