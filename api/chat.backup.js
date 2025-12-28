@@ -1,9 +1,6 @@
 const { setCors } = require("./_cors");
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
-const OpenAI = require("openai");
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const ASSISTANT_ID = "asst_rHXdB7U47CNanDF6kjrtlpzw";
 
 function getClientKey(req, sessionId) {
   if (sessionId) return sessionId;
@@ -33,7 +30,7 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { error: "Method not allowed" });
   }
 
-  const body = await parseRequestBody(req, res);
+  const body = parseRequestBody(req, res);
   if (!body) return;
 
   const { message, sessionId = null, meta, timestamp, ...rest } = body;
@@ -56,30 +53,14 @@ module.exports = async function handler(req, res) {
     timestamp: timestamp || new Date().toISOString(),
   };
 
-  const userMessage = body.message || body.text;
-
-  const thread = await openai.beta.threads.create();
-
-  await openai.beta.threads.messages.create(thread.id, {
-    role: "user",
-    content: userMessage,
-  });
-
-  const run = await openai.beta.threads.runs.create(thread.id, {
-    assistant_id: ASSISTANT_ID,
-  });
-
-  let status = "queued";
-  while (status !== "completed") {
-    const r = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-    status = r.status;
-    if (status === "failed") {
-      return sendJson(res, 500, { error: "Assistant failed" });
-    }
+  try {
+    const { data, status } = await forwardToN8n(payload);
+    return sendJson(res, status, data);
+  } catch (error) {
+    const status = error.statusCode || error.status || 502;
+    return sendJson(res, status, {
+      error: "Chat forwarding failed",
+      message: error.message,
+    });
   }
-
-  const messages = await openai.beta.threads.messages.list(thread.id);
-  const reply = messages.data[0].content[0].text.value;
-
-  return sendJson(res, 200, { reply });
 };
