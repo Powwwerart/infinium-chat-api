@@ -1,4 +1,4 @@
-const { setCors } = require("./_cors");
+const setCors = require("./_cors");
 const { isRateLimited } = require("./_rateLimit");
 const { forwardToN8n, parseRequestBody, sendJson } = require("./_utils");
 

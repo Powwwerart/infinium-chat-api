@@ -2,6 +2,13 @@
 module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
   const origin = req.headers.origin;
 
+  const defaultAllowed = [
+    "https://infinium.services",
+    "https://infinium-chat-api.vercel.app",
+    "http://localhost:3000",
+    "https://localhost:3000",
+  ];
+
   // Lee env y lo convierte a lista limpia
   const raw = process.env.ALLOWED_ORIGINS || "";
   const allowed = raw
@@ -9,13 +16,15 @@ module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  const allowedOrigins = new Set([...defaultAllowed, ...allowed]);
+
   // Permite wildcard con "*"
-  const allowAll = allowed.includes("*");
+  const allowAll = allowedOrigins.has("*");
 
   // Decide el origin permitido
   const isAllowed =
     allowAll ||
-    (origin && allowed.includes(origin)) ||
+    (origin && allowedOrigins.has(origin)) ||
     // si no hay origin (curl/postman/server-to-server), no bloquees
     !origin;
 
@@ -44,6 +53,7 @@ module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
 
   // Si el origin NO está permitido, corta aquí con 403 para que lo veas claro en Network
   if (!isAllowed) {
+    console.warn(`CORS blocked origin=${origin || "unknown"} path=${req.url || ""}`);
     res.statusCode = 403;
     res.end("CORS blocked: origin not allowed");
     return;
