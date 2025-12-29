@@ -1,6 +1,6 @@
 # INFINEUM Chat API
 
-Backend bridge between the public INFINEUM frontend and the internal n8n automation. The API validates requests, applies simple rate limiting, and forwards chat/event payloads to the configured n8n webhook with the shared secret header. It does **not** call OpenAI or apply business logic.
+Backend bridge between the public INFINEUM frontend, OpenAI Assistants, and the internal n8n automation. The API validates requests, applies simple rate limiting, and forwards chat/event payloads to the configured n8n webhook with the shared secret header.
 
 ## Environment variables
 
@@ -10,6 +10,8 @@ Create a `.env` file with:
 | --- | --- | --- |
 | `N8N_WEBHOOK_URL` | n8n webhook URL that receives forwarded payloads. | `https://example.n8n.cloud/webhook/infinium` |
 | `N8N_WEBHOOK_SECRET` | Secret sent as `x-infinium-secret` header to n8n. | `<string-largo>` |
+| `OPENAI_API_KEY` | OpenAI API key for Assistants calls used by `/api/chat`. | `<TOKEN_HERE>` |
+| `OPENAI_ASSISTANT_ID` | Assistant ID used by `/api/chat`. | `asst_12345678` |
 | `ALLOWED_ORIGINS` | Optional comma-separated list of allowed origins for CORS (defaults listed below). | `https://infinium.services,http://localhost:3000` |
 | `CORS_ALLOW_ALL_ORIGINS` | Optional. Set to `true` only for debugging to allow `*`. | `true` |
 | `NODE_ENV` | Node environment. | `production` |

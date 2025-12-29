@@ -3,7 +3,7 @@ const { parseRequestBody, sendJson } = require("./_utils");
 const OpenAI = require("openai");
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const ASSISTANT_ID = process.env.ASSISTANT_ID; // <-- ya no hardcode
+const OPENAI_ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
 const POLL_INTERVAL_MS = 350;
 const MAX_WAIT_MS = 20000; // 20s
@@ -122,9 +122,20 @@ function appendDisclaimer(reply, isEnglish, includeDisclaimer) {
   return `${reply}\n\n${disclaimer}`.trim();
 }
 
+ codex/fix-setcors-export/import-mismatch-75fmfa
+function maskAssistantId(value) {
+  if (!value) return "missing";
+  return value.slice(0, 8);
+}
+
+=======
+ main
 module.exports = async function handler(req, res) {
   // CORS primero SIEMPRE
   setCors(req, res, ["POST", "OPTIONS"]);
+
+  const origin = req.headers.origin || "unknown";
+  console.info(`[chat] origin=${origin} assistantId=${maskAssistantId(OPENAI_ASSISTANT_ID)}`);
 
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {
@@ -139,10 +150,17 @@ module.exports = async function handler(req, res) {
       error: "Missing OPENAI_API_KEY in Vercel env",
     });
   }
+ codex/fix-setcors-export/import-mismatch-75fmfa
+  if (!OPENAI_ASSISTANT_ID) {
+    return sendJson(res, 500, {
+      ok: false,
+      error: "Missing OPENAI_ASSISTANT_ID in Vercel env",
+=======
   if (!ASSISTANT_ID) {
     return sendJson(res, 500, {
       ok: false,
       error: "Missing ASSISTANT_ID in Vercel env",
+ main
     });
   }
 
@@ -175,7 +193,7 @@ module.exports = async function handler(req, res) {
 
     // 3) Run
     const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: ASSISTANT_ID,
+      assistant_id: OPENAI_ASSISTANT_ID,
     });
 
     // 4) Poll
@@ -190,6 +208,10 @@ module.exports = async function handler(req, res) {
         const fallbackReply = isEnglish
           ? "I'm processing your request. Please rephrase it for now."
           : "Estoy procesando tu solicitud. Reformúlala o pídela de otra forma (aún no manejo tool-calls aquí).";
+ codex/fix-setcors-export/import-mismatch-75fmfa
+        console.warn(`[chat] fallback=requires_action origin=${origin}`);
+=======
+ main
         return sendJson(res, 200, {
           ok: true,
           reply: fallbackReply,
@@ -200,6 +222,10 @@ module.exports = async function handler(req, res) {
       }
 
       if (status === "failed" || status === "cancelled" || status === "expired" || status === "incomplete") {
+ codex/fix-setcors-export/import-mismatch-75fmfa
+        console.error(`[chat] openai_error status=${status} origin=${origin}`);
+======= 
+  main
         return sendJson(res, 500, {
           ok: false,
           error: "Assistant did not complete",
@@ -209,6 +235,10 @@ module.exports = async function handler(req, res) {
       }
 
       if (Date.now() - started > MAX_WAIT_MS) {
+        codex/fix-setcors-export/import-mismatch-75fmfa
+        console.error(`[chat] openai_timeout origin=${origin}`);
+=======
+  main
         return sendJson(res, 504, {
           ok: false,
           error: "Assistant timeout",
@@ -225,6 +255,10 @@ module.exports = async function handler(req, res) {
     const reply = pickTextFromAssistantMessages(messages) || "Listo.";
     const finalReply = appendDisclaimer(reply, isEnglish, needsMedicalDisclaimer(userMessage));
 
+ codex/fix-setcors-export/import-mismatch-75fmfa
+    console.info(`[chat] openai_ok origin=${origin}`);
+=======
+ main
     return sendJson(res, 200, { ok: true, reply: finalReply, intent, actions });
   } catch (err) {
     const msg =
@@ -234,10 +268,20 @@ module.exports = async function handler(req, res) {
 
     // OJO: si OpenAI devuelve 404, tú lo verás aquí (assistant no accesible)
     const status = err?.status || err?.response?.status || 500;
+    const isAssistantNotFound =
+      status === 404 &&
+      /assistant/i.test(msg);
 
+ codex/fix-setcors-export/import-mismatch-75fmfa
+    console.error(`[chat] openai_error status=${status} origin=${origin} message=${msg}`);
+    return sendJson(res, isAssistantNotFound ? 500 : status, {
+      ok: false,
+      error: isAssistantNotFound ? "Invalid OPENAI_ASSISTANT_ID" : "Chat failed",
+=======
     return sendJson(res, status, {
       ok: false,
       error: "Chat failed",
+ main
       message: msg,
       intent,
     });
