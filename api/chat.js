@@ -41,6 +41,8 @@ const ACTIONS = {
   },
 };
 
+const ERROR_REPLY = "Disculpa, estoy reconectando...";
+
 function extractUserMessage(body) {
   if (!body) return "";
   return (
@@ -122,46 +124,34 @@ function appendDisclaimer(reply, isEnglish, includeDisclaimer) {
   return `${reply}\n\n${disclaimer}`.trim();
 }
 
- codex/fix-setcors-export/import-mismatch-75fmfa
 function maskAssistantId(value) {
   if (!value) return "missing";
   return value.slice(0, 8);
 }
 
-=======
- main
+function hasOpenAiConfig() {
+  return Boolean(OPENAI_API_KEY && OPENAI_ASSISTANT_ID);
+}
+
 module.exports = async function handler(req, res) {
-  // CORS primero SIEMPRE
   setCors(req, res, ["POST", "OPTIONS"]);
 
   const origin = req.headers.origin || "unknown";
-  console.info(`[chat] origin=${origin} assistantId=${maskAssistantId(OPENAI_ASSISTANT_ID)}`);
+  console.info(`[chat] start origin=${origin}`);
+  console.info(
+    `[chat] env openaiKey=${Boolean(OPENAI_API_KEY)} assistantId=${maskAssistantId(
+      OPENAI_ASSISTANT_ID
+    )}`
+  );
 
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST, OPTIONS");
-    return sendJson(res, 405, { ok: false, error: "Method not allowed" });
+    return sendJson(res, 405, { ok: false, reply: ERROR_REPLY, error: "method_not_allowed" });
   }
 
-  // Validaciones claras
-  if (!OPENAI_API_KEY) {
-    return sendJson(res, 500, {
-      ok: false,
-      error: "Missing OPENAI_API_KEY in Vercel env",
-    });
-  }
- codex/fix-setcors-export/import-mismatch-75fmfa
-  if (!OPENAI_ASSISTANT_ID) {
-    return sendJson(res, 500, {
-      ok: false,
-      error: "Missing OPENAI_ASSISTANT_ID in Vercel env",
-=======
-  if (!ASSISTANT_ID) {
-    return sendJson(res, 500, {
-      ok: false,
-      error: "Missing ASSISTANT_ID in Vercel env",
- main
-    });
+  if (!hasOpenAiConfig()) {
+    return sendJson(res, 500, { ok: false, reply: ERROR_REPLY, error: "missing_env" });
   }
 
   const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
@@ -175,28 +165,24 @@ module.exports = async function handler(req, res) {
 
     const userMessage = extractUserMessage(body).trim();
     if (!userMessage) {
-      return sendJson(res, 400, { ok: false, error: "Missing message/text" });
+      return sendJson(res, 400, { ok: false, reply: ERROR_REPLY, error: "missing_message" });
     }
 
     isEnglish = detectEnglish(userMessage);
     intent = detectIntent(userMessage);
     actions = buildActions(intent, isEnglish);
 
-    // 1) Crear thread
     const thread = await openai.beta.threads.create();
 
-    // 2) Mensaje usuario
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: userMessage,
     });
 
-    // 3) Run
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: OPENAI_ASSISTANT_ID,
     });
 
-    // 4) Poll
     const started = Date.now();
     while (true) {
       const runResult = await openai.beta.threads.runs.retrieve(thread.id, run.id);
@@ -208,10 +194,6 @@ module.exports = async function handler(req, res) {
         const fallbackReply = isEnglish
           ? "I'm processing your request. Please rephrase it for now."
           : "Estoy procesando tu solicitud. Reformúlala o pídela de otra forma (aún no manejo tool-calls aquí).";
- codex/fix-setcors-export/import-mismatch-75fmfa
-        console.warn(`[chat] fallback=requires_action origin=${origin}`);
-=======
- main
         return sendJson(res, 200, {
           ok: true,
           reply: fallbackReply,
@@ -221,69 +203,50 @@ module.exports = async function handler(req, res) {
         });
       }
 
-      if (status === "failed" || status === "cancelled" || status === "expired" || status === "incomplete") {
- codex/fix-setcors-export/import-mismatch-75fmfa
+      if (
+        status === "failed" ||
+        status === "cancelled" ||
+        status === "expired" ||
+        status === "incomplete"
+      ) {
         console.error(`[chat] openai_error status=${status} origin=${origin}`);
-======= 
-  main
-        return sendJson(res, 500, {
+        return sendJson(res, 502, {
           ok: false,
-          error: "Assistant did not complete",
-          intent,
-          status,
+          reply: ERROR_REPLY,
+          error: "openai_error",
         });
       }
 
       if (Date.now() - started > MAX_WAIT_MS) {
-        codex/fix-setcors-export/import-mismatch-75fmfa
         console.error(`[chat] openai_timeout origin=${origin}`);
-=======
-  main
-        return sendJson(res, 504, {
+        return sendJson(res, 502, {
           ok: false,
-          error: "Assistant timeout",
-          intent,
-          status,
+          reply: ERROR_REPLY,
+          error: "openai_error",
         });
       }
 
       await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
     }
 
-    // 5) Respuesta
     const messages = await openai.beta.threads.messages.list(thread.id);
     const reply = pickTextFromAssistantMessages(messages) || "Listo.";
     const finalReply = appendDisclaimer(reply, isEnglish, needsMedicalDisclaimer(userMessage));
 
- codex/fix-setcors-export/import-mismatch-75fmfa
     console.info(`[chat] openai_ok origin=${origin}`);
-=======
- main
     return sendJson(res, 200, { ok: true, reply: finalReply, intent, actions });
   } catch (err) {
-    const msg =
-      err?.response?.data?.error?.message ||
-      err?.message ||
-      "Unknown server error";
-
-    // OJO: si OpenAI devuelve 404, tú lo verás aquí (assistant no accesible)
     const status = err?.status || err?.response?.status || 500;
-    const isAssistantNotFound =
-      status === 404 &&
-      /assistant/i.test(msg);
+    console.error("[chat] error", err?.stack || err);
 
- codex/fix-setcors-export/import-mismatch-75fmfa
-    console.error(`[chat] openai_error status=${status} origin=${origin} message=${msg}`);
-    return sendJson(res, isAssistantNotFound ? 500 : status, {
-      ok: false,
-      error: isAssistantNotFound ? "Invalid OPENAI_ASSISTANT_ID" : "Chat failed",
-=======
-    return sendJson(res, status, {
-      ok: false,
-      error: "Chat failed",
- main
-      message: msg,
-      intent,
-    });
+    if (!hasOpenAiConfig()) {
+      return sendJson(res, 500, { ok: false, reply: ERROR_REPLY, error: "missing_env" });
+    }
+
+    if (status >= 400) {
+      return sendJson(res, 502, { ok: false, reply: ERROR_REPLY, error: "openai_error" });
+    }
+
+    return sendJson(res, 500, { ok: false, reply: ERROR_REPLY, error: "server_error" });
   }
 };
