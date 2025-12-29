@@ -1,5 +1,6 @@
 const setCors = require("./_cors");
 const { parseRequestBody, sendJson } = require("./_utils");
+const { handleUserMessage } = require("./commandChain");
 const OpenAI = require("openai");
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -150,11 +151,6 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { ok: false, reply: ERROR_REPLY, error: "method_not_allowed" });
   }
 
-  if (!hasOpenAiConfig()) {
-    return sendJson(res, 500, { ok: false, reply: ERROR_REPLY, error: "missing_env" });
-  }
-
-  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
   let intent = "unknown";
   let actions = buildActions(intent, false);
   let isEnglish = false;
@@ -168,6 +164,16 @@ module.exports = async function handler(req, res) {
       return sendJson(res, 400, { ok: false, reply: ERROR_REPLY, error: "missing_message" });
     }
 
+    const lockedReply = handleUserMessage(userMessage);
+    if (lockedReply) {
+      return sendJson(res, 200, { reply: lockedReply, mode: "locked" });
+    }
+
+    if (!hasOpenAiConfig()) {
+      return sendJson(res, 500, { ok: false, reply: ERROR_REPLY, error: "missing_env" });
+    }
+
+    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
     isEnglish = detectEnglish(userMessage);
     intent = detectIntent(userMessage);
     actions = buildActions(intent, isEnglish);
