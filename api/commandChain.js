@@ -25,38 +25,138 @@ const MIN_PRICES_USD = {
 const CATEGORY_DEFINITIONS = {
   energia: {
     label: "energía",
-    product: "VITALPRO",
-    phrase: "aporta energía funcional",
+    products: [
+      {
+        name: "VITALPRO",
+        phrase: "aporta energía funcional",
+        howItWorks: "combina nutrientes que ayudan a sostener el ritmo diario",
+      },
+      {
+        name: "V-NRGY",
+        phrase: "acompaña la vitalidad diaria",
+        howItWorks: "incluye extractos que favorecen la sensación de empuje",
+      },
+    ],
   },
   estres_descanso: {
     label: "estrés / descanso",
-    product: "V-ITALAY",
-    phrase: "contribuye a la relajación y descanso",
+    products: [
+      {
+        name: "V-ITALAY",
+        phrase: "contribuye a la relajación y descanso",
+        howItWorks: "aporta ingredientes que ayudan a soltar la tensión del día",
+      },
+      {
+        name: "V-LOVEKAFE",
+        phrase: "favorece una pausa tranquila",
+        howItWorks: "mezcla botánicos que invitan a un momento de calma",
+      },
+    ],
   },
   digestion: {
     label: "digestión",
-    product: "V-FORTYFLORA",
-    phrase: "apoya la flora intestinal",
+    products: [
+      {
+        name: "V-FORTYFLORA",
+        phrase: "apoya la flora intestinal",
+        howItWorks: "incluye cepas que ayudan al equilibrio digestivo",
+      },
+      {
+        name: "V-ORGANEX",
+        phrase: "acompaña la digestión ligera",
+        howItWorks: "aporta fibras y nutrientes para una sensación de bienestar",
+      },
+    ],
   },
   enfoque: {
     label: "enfoque",
-    product: "V-NEUROKAFE",
-    phrase: "apoya el rendimiento mental",
+    products: [
+      {
+        name: "V-NEUROKAFE",
+        phrase: "apoya el rendimiento mental",
+        howItWorks: "combina café funcional y nutrientes para la claridad",
+      },
+      {
+        name: "V-OMEGA 3",
+        phrase: "acompaña la concentración diaria",
+        howItWorks: "aporta ácidos grasos que favorecen la función cognitiva",
+      },
+    ],
   },
   peso: {
     label: "peso",
-    product: "V-THERMOKAFE",
-    phrase: "acompaña el metabolismo activo",
+    products: [
+      {
+        name: "V-THERMOKAFE",
+        phrase: "acompaña el metabolismo activo",
+        howItWorks: "incluye extractos que apoyan la energía del día",
+      },
+      {
+        name: "V-CONTROL",
+        phrase: "apoya el control de antojos",
+        howItWorks: "aporta fibras que ayudan a la sensación de saciedad",
+      },
+    ],
   },
   articulaciones: {
     label: "articulaciones",
-    product: "V-ITADOL",
-    phrase: "acompaña la movilidad articular",
+    products: [
+      {
+        name: "V-ITADOL",
+        phrase: "acompaña la movilidad articular",
+        howItWorks: "aporta compuestos que ayudan al confort en movimiento",
+      },
+      {
+        name: "V-CURCUMAX",
+        phrase: "apoya el bienestar articular",
+        howItWorks: "combina cúrcuma y nutrientes para la flexibilidad diaria",
+      },
+    ],
   },
   bienestar: {
     label: "bienestar general",
-    product: "V-DAILY",
-    phrase: "apoya el equilibrio nutricional diario",
+    products: [
+      {
+        name: "V-DAILY",
+        phrase: "apoya el equilibrio nutricional diario",
+        howItWorks: "aporta vitaminas y minerales para cubrir lo esencial",
+      },
+      {
+        name: "VITALBOOST",
+        phrase: "acompaña la vitalidad general",
+        howItWorks: "combina micronutrientes para mantenerte activo",
+      },
+    ],
+  },
+  antioxidantes: {
+    label: "protección antioxidante",
+    products: [
+      {
+        name: "V-GLUTATION",
+        phrase: "apoya la defensa antioxidante",
+        howItWorks: "aporta antioxidantes que ayudan a neutralizar el desgaste",
+      },
+      {
+        name: "GLUTATION PLUS",
+        phrase: "refuerza el balance antioxidante",
+        howItWorks: "combina nutrientes que acompañan el cuidado celular diario",
+      },
+    ],
+  },
+  piel_colageno: {
+    label: "piel y colágeno",
+    products: [
+      {
+        name: "VITALAGE COLLAGEN",
+        phrase: "apoya la elasticidad de la piel",
+        howItWorks: "aporta colágeno y cofactores para la nutrición dérmica",
+      },
+      {
+        name: "V-OMEGA 3",
+        phrase: "acompaña la hidratación natural",
+        howItWorks: "incluye grasas buenas que favorecen una piel luminosa",
+      },
+    ],
   },
   escaneo: {
     label: "escaneo",
@@ -98,6 +198,8 @@ const CATEGORY_KEYWORDS = {
     "cadera",
   ],
   bienestar: ["bienestar", "general", "salud", "equilibrio", "nutricional", "diario"],
+  antioxidantes: ["antioxidante", "antioxidantes", "oxidacion", "desgaste", "proteccion"],
+  piel_colageno: ["piel", "colageno", "colágeno", "elasticidad", "hidratacion"],
   escaneo: ["escaneo", "scan", "scanner", "qr"],
 };
 
@@ -147,6 +249,8 @@ function buildMenuResponse() {
     "- Peso",
     "- Articulaciones",
     "- Bienestar general",
+    "- Protección antioxidante",
+    "- Piel y colágeno",
     "- Escaneo",
   ].join("\n");
 }
@@ -159,11 +263,15 @@ function buildScanResponse() {
   ].join("\n");
 }
 
-function buildProductResponse({ categoryLabel, product, phrase, price }) {
+function buildProductResponse({ categoryLabel, products }) {
   return [
-    `Para rutinas de ${categoryLabel}, suele encajar bien ${product}.`,
-    `Es un suplemento alimenticio que ${phrase}.`,
-    `Precio de referencia desde: ${price}. (Puede variar al entrar a la tienda).`,
+    `Para rutinas de ${categoryLabel}, suelen encajar bien estas opciones:`,
+    `1) ${products[0].name}: ${products[0].phrase}.`,
+    `Cómo funciona: ${products[0].howItWorks}.`,
+    `Precio de referencia desde: ${products[0].price}. (Puede variar al entrar a la tienda).`,
+    `2) ${products[1].name}: ${products[1].phrase}.`,
+    `Cómo funciona: ${products[1].howItWorks}.`,
+    `Precio de referencia desde: ${products[1].price}. (Puede variar al entrar a la tienda).`,
     "¿Cómo te gustaría continuar?",
     "- Comprar ahora",
     "- Hablar con un asesor por WhatsApp",
@@ -183,17 +291,27 @@ function mapCategoryToResponse(category) {
   const categoryInfo = CATEGORY_DEFINITIONS[category];
   if (!categoryInfo) return null;
 
-  const priceValue = getMinPriceUSD(categoryInfo.product);
-  if (priceValue === null) return null;
+  if (!Array.isArray(categoryInfo.products) || categoryInfo.products.length < 2) {
+    return null;
+  }
 
-  const price = formatUSD(priceValue);
-  if (!price) return null;
+  const products = categoryInfo.products.slice(0, 2).map((product) => {
+    const priceValue = getMinPriceUSD(product.name);
+    if (priceValue === null) return null;
+    const price = formatUSD(priceValue);
+    if (!price) return null;
+
+    return {
+      ...product,
+      price,
+    };
+  });
+
+  if (products.some((product) => !product)) return null;
 
   return buildProductResponse({
     categoryLabel: categoryInfo.label,
-    product: categoryInfo.product,
-    phrase: categoryInfo.phrase,
-    price,
+    products,
   });
 }
 
