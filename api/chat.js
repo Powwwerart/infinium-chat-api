@@ -9,6 +9,16 @@ const OPENAI_ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 const POLL_INTERVAL_MS = 350;
 const MAX_WAIT_MS = 20000; // 20s
 const BUY_URL = "https://vitalhealthglobal.com/collections/all?refID=145748";
+const SCAN_SCHEDULE_URL =
+  process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
+const SCAN_WHATSAPP_PHONE_ES = process.env.SCAN_WHATSAPP_PHONE_ES || "19565505115";
+const SCAN_WHATSAPP_PHONE_EN = process.env.SCAN_WHATSAPP_PHONE_EN || "19564421379";
+const SCAN_WHATSAPP_TEXT_ES =
+  process.env.SCAN_WHATSAPP_TEXT_ES ||
+  "Hola, vengo de INFINIUM. Quiero agendar un escaneo.";
+const SCAN_WHATSAPP_TEXT_EN =
+  process.env.SCAN_WHATSAPP_TEXT_EN ||
+  "Hello, I came from INFINIUM. I want to schedule a scan.";
 
 const ACTIONS = {
   buy: {
@@ -39,6 +49,23 @@ const ACTIONS = {
     label: "WhatsApp (English)",
     phone: "19564421379",
     text: "Hello, I came from INFINIUM and want to join as an affiliate.",
+  },
+  scanSchedule: {
+    type: "open_url",
+    label: "Agendar escaneo",
+    url: SCAN_SCHEDULE_URL,
+  },
+  scanWhatsAppEs: {
+    type: "whatsapp",
+    label: "Asesor (Español)",
+    phone: SCAN_WHATSAPP_PHONE_ES,
+    text: SCAN_WHATSAPP_TEXT_ES,
+  },
+  scanWhatsAppEn: {
+    type: "whatsapp",
+    label: "Advisor (English)",
+    phone: SCAN_WHATSAPP_PHONE_EN,
+    text: SCAN_WHATSAPP_TEXT_EN,
   },
 };
 
@@ -76,16 +103,18 @@ function includesWord(input, word) {
 }
 
 function detectEnglish(message) {
-  const keywords = ["hello", "hi", "help", "buy", "join", "order"];
+  const keywords = ["hello", "hi", "help", "buy", "join", "order", "scan", "schedule", "appointment"];
   return keywords.some((word) => includesWord(message, word));
 }
 
 function detectIntent(message) {
   const buyTerms = ["comprar", "precio", "orden", "order", "buy", "purchase", "checkout"];
+  const scanTerms = ["escaneo", "scan", "scanner", "escáner", "cita", "agendar", "agenda", "appointment"];
   const supportTerms = ["whatsapp", "wsp", "asesor", "advisor", "support", "ayuda", "help"];
   const joinTerms = ["unirme", "afiliar", "negocio", "comision", "team", "join", "affiliate"];
 
   if (buyTerms.some((word) => includesWord(message, word))) return "buy";
+  if (scanTerms.some((word) => includesWord(message, word))) return "scan";
   if (supportTerms.some((word) => includesWord(message, word))) return "support";
   if (joinTerms.some((word) => includesWord(message, word))) return "join";
   return "unknown";
@@ -107,6 +136,14 @@ function buildActions(intent, isEnglish) {
 
   if (intent === "join") {
     return [joinPrimary, joinSecondary];
+  }
+
+  if (intent === "scan") {
+    return [
+      ACTIONS.scanSchedule,
+      isEnglish ? ACTIONS.scanWhatsAppEn : ACTIONS.scanWhatsAppEs,
+      isEnglish ? ACTIONS.whatsappEn : ACTIONS.whatsappEs,
+    ];
   }
 
   return [primaryWhatsApp, ACTIONS.buy];
@@ -166,7 +203,10 @@ module.exports = async function handler(req, res) {
 
     const lockedReply = handleUserMessage(userMessage);
     if (lockedReply) {
-      return sendJson(res, 200, { reply: lockedReply, mode: "locked" });
+      isEnglish = detectEnglish(userMessage);
+      intent = detectIntent(userMessage);
+      actions = buildActions(intent, isEnglish);
+      return sendJson(res, 200, { ok: true, reply: lockedReply, mode: "locked", intent, actions });
     }
 
     if (!hasOpenAiConfig()) {
