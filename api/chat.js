@@ -12,6 +12,11 @@ const BUY_URL = "https://vitalhealthglobal.com/collections/all?refID=145748";
 const SCAN_SCHEDULE_URL =
   process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
 const SCAN_WHATSAPP_PHONE_ES = process.env.SCAN_WHATSAPP_PHONE_ES || "19565505115";
+codex/add-scan-support-to-chat-api-ix4s67
+const SCAN_WHATSAPP_TEXT_ES =
+  process.env.SCAN_WHATSAPP_TEXT_ES ||
+  "Hola, vengo de INFINIUM. Quiero agendar un escaneo.";
+
 const SCAN_WHATSAPP_PHONE_EN = process.env.SCAN_WHATSAPP_PHONE_EN || "19564421379";
 const SCAN_WHATSAPP_TEXT_ES =
   process.env.SCAN_WHATSAPP_TEXT_ES ||
@@ -19,6 +24,7 @@ const SCAN_WHATSAPP_TEXT_ES =
 const SCAN_WHATSAPP_TEXT_EN =
   process.env.SCAN_WHATSAPP_TEXT_EN ||
   "Hello, I came from INFINIUM. I want to schedule a scan.";
+ main
 
 const ACTIONS = {
   buy: {
@@ -57,6 +63,12 @@ const ACTIONS = {
   },
   scanWhatsAppEs: {
     type: "whatsapp",
+codex/add-scan-support-to-chat-api-ix4s67
+    label: "Asesor por WhatsApp",
+    phone: SCAN_WHATSAPP_PHONE_ES,
+    text: SCAN_WHATSAPP_TEXT_ES,
+  },
+
     label: "Asesor (Español)",
     phone: SCAN_WHATSAPP_PHONE_ES,
     text: SCAN_WHATSAPP_TEXT_ES,
@@ -67,6 +79,7 @@ const ACTIONS = {
     phone: SCAN_WHATSAPP_PHONE_EN,
     text: SCAN_WHATSAPP_TEXT_EN,
   },
+main
 };
 
 const ERROR_REPLY = "Disculpa, estoy reconectando...";
@@ -109,7 +122,11 @@ function detectEnglish(message) {
 
 function detectIntent(message) {
   const buyTerms = ["comprar", "precio", "orden", "order", "buy", "purchase", "checkout"];
+codex/add-scan-support-to-chat-api-ix4s67
+  const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
+
   const scanTerms = ["escaneo", "scan", "scanner", "escáner", "cita", "agendar", "agenda", "appointment"];
+main
   const supportTerms = ["whatsapp", "wsp", "asesor", "advisor", "support", "ayuda", "help"];
   const joinTerms = ["unirme", "afiliar", "negocio", "comision", "team", "join", "affiliate"];
 
@@ -141,8 +158,12 @@ function buildActions(intent, isEnglish) {
   if (intent === "scan") {
     return [
       ACTIONS.scanSchedule,
+codex/add-scan-support-to-chat-api-ix4s67
+      ACTIONS.scanWhatsAppEs,
+
       isEnglish ? ACTIONS.scanWhatsAppEn : ACTIONS.scanWhatsAppEs,
       isEnglish ? ACTIONS.whatsappEn : ACTIONS.whatsappEs,
+main
     ];
   }
 
