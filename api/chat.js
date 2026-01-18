@@ -8,6 +8,16 @@ const OPENAI_ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
 const POLL_INTERVAL_MS = 350;
 const MAX_WAIT_MS = 20000; // 20s
+ codex/add-scan-support-to-chat-api-flgzux
+const CHECKOUT_URL = process.env.CHECKOUT_URL || "https://infinium.services/";
+const SCAN_SCHEDULE_URL =
+  process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
+const WHATSAPP_PHONE = process.env.WHATSAPP_PHONE || "19565505115";
+const WHATSAPP_TEXT =
+  process.env.WHATSAPP_TEXT || "Hola, vengo de INFINIUM. Quiero ayuda para elegir una opción.";
+const SCAN_WHATSAPP_TEXT =
+  process.env.SCAN_WHATSAPP_TEXT || "Hola, quiero agendar un escaneo.";
+
 const BUY_URL = "https://vitalhealthglobal.com/collections/all?refID=145748";
 const SCAN_SCHEDULE_URL =
   process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
@@ -81,6 +91,7 @@ codex/add-scan-support-to-chat-api-ix4s67
   },
 main
 };
+ main
 
 const ERROR_REPLY = "Disculpa, estoy reconectando...";
 
@@ -121,6 +132,33 @@ function detectEnglish(message) {
 }
 
 function detectIntent(message) {
+ codex/add-scan-support-to-chat-api-flgzux
+  const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
+  if (scanTerms.some((word) => includesWord(message, word))) return "scan";
+  return "general";
+}
+
+function buildCloseActions(intent) {
+  const whatsappText = intent === "scan" ? SCAN_WHATSAPP_TEXT : WHATSAPP_TEXT;
+  return [
+    {
+      type: "open_url",
+      label: "Compra ya",
+      url: CHECKOUT_URL,
+    },
+    {
+      type: "open_url",
+      label: "Agenda escaneo",
+      url: SCAN_SCHEDULE_URL,
+    },
+    {
+      type: "whatsapp",
+      label: "Asesor (WhatsApp)",
+      phone: WHATSAPP_PHONE,
+      text: whatsappText,
+    },
+  ];
+
   const buyTerms = ["comprar", "precio", "orden", "order", "buy", "purchase", "checkout"];
 codex/add-scan-support-to-chat-api-ix4s67
   const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
@@ -168,6 +206,7 @@ main
   }
 
   return [primaryWhatsApp, ACTIONS.buy];
+ main
 }
 
 function needsMedicalDisclaimer(message) {
@@ -209,8 +248,8 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { ok: false, reply: ERROR_REPLY, error: "method_not_allowed" });
   }
 
-  let intent = "unknown";
-  let actions = buildActions(intent, false);
+  let intent = "general";
+  let actions = buildCloseActions(intent);
   let isEnglish = false;
 
   try {
@@ -226,7 +265,11 @@ module.exports = async function handler(req, res) {
     if (lockedReply) {
       isEnglish = detectEnglish(userMessage);
       intent = detectIntent(userMessage);
+ codex/add-scan-support-to-chat-api-flgzux
+      actions = buildCloseActions(intent);
+
       actions = buildActions(intent, isEnglish);
+ main
       return sendJson(res, 200, { ok: true, reply: lockedReply, mode: "locked", intent, actions });
     }
 
@@ -237,7 +280,7 @@ module.exports = async function handler(req, res) {
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
     isEnglish = detectEnglish(userMessage);
     intent = detectIntent(userMessage);
-    actions = buildActions(intent, isEnglish);
+    actions = buildCloseActions(intent);
 
     const thread = await openai.beta.threads.create();
 
