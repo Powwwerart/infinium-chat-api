@@ -8,6 +8,7 @@ const OPENAI_ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
 const POLL_INTERVAL_MS = 350;
 const MAX_WAIT_MS = 20000; // 20s
+ codex/add-scan-support-to-chat-api-flgzux
 const CHECKOUT_URL = process.env.CHECKOUT_URL || "https://infinium.services/";
 const SCAN_SCHEDULE_URL =
   process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
@@ -16,6 +17,81 @@ const WHATSAPP_TEXT =
   process.env.WHATSAPP_TEXT || "Hola, vengo de INFINIUM. Quiero ayuda para elegir una opción.";
 const SCAN_WHATSAPP_TEXT =
   process.env.SCAN_WHATSAPP_TEXT || "Hola, quiero agendar un escaneo.";
+
+const BUY_URL = "https://vitalhealthglobal.com/collections/all?refID=145748";
+const SCAN_SCHEDULE_URL =
+  process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
+const SCAN_WHATSAPP_PHONE_ES = process.env.SCAN_WHATSAPP_PHONE_ES || "19565505115";
+codex/add-scan-support-to-chat-api-ix4s67
+const SCAN_WHATSAPP_TEXT_ES =
+  process.env.SCAN_WHATSAPP_TEXT_ES ||
+  "Hola, vengo de INFINIUM. Quiero agendar un escaneo.";
+
+const SCAN_WHATSAPP_PHONE_EN = process.env.SCAN_WHATSAPP_PHONE_EN || "19564421379";
+const SCAN_WHATSAPP_TEXT_ES =
+  process.env.SCAN_WHATSAPP_TEXT_ES ||
+  "Hola, vengo de INFINIUM. Quiero agendar un escaneo.";
+const SCAN_WHATSAPP_TEXT_EN =
+  process.env.SCAN_WHATSAPP_TEXT_EN ||
+  "Hello, I came from INFINIUM. I want to schedule a scan.";
+ main
+
+const ACTIONS = {
+  buy: {
+    type: "open_url",
+    label: "Comprar ahora",
+    url: BUY_URL,
+  },
+  whatsappEs: {
+    type: "whatsapp",
+    label: "WhatsApp (Español)",
+    phone: "19565505115",
+    text: "Hola, vengo de INFINIUM...",
+  },
+  whatsappEn: {
+    type: "whatsapp",
+    label: "WhatsApp (English)",
+    phone: "19564421379",
+    text: "Hello, I came from INFINIUM...",
+  },
+  joinEs: {
+    type: "whatsapp",
+    label: "WhatsApp (Español)",
+    phone: "19565505115",
+    text: "Hola, vengo de INFINIUM y quiero unirme como afiliado.",
+  },
+  joinEn: {
+    type: "whatsapp",
+    label: "WhatsApp (English)",
+    phone: "19564421379",
+    text: "Hello, I came from INFINIUM and want to join as an affiliate.",
+  },
+  scanSchedule: {
+    type: "open_url",
+    label: "Agendar escaneo",
+    url: SCAN_SCHEDULE_URL,
+  },
+  scanWhatsAppEs: {
+    type: "whatsapp",
+codex/add-scan-support-to-chat-api-ix4s67
+    label: "Asesor por WhatsApp",
+    phone: SCAN_WHATSAPP_PHONE_ES,
+    text: SCAN_WHATSAPP_TEXT_ES,
+  },
+
+    label: "Asesor (Español)",
+    phone: SCAN_WHATSAPP_PHONE_ES,
+    text: SCAN_WHATSAPP_TEXT_ES,
+  },
+  scanWhatsAppEn: {
+    type: "whatsapp",
+    label: "Advisor (English)",
+    phone: SCAN_WHATSAPP_PHONE_EN,
+    text: SCAN_WHATSAPP_TEXT_EN,
+  },
+main
+};
+ main
 
 const ERROR_REPLY = "Disculpa, estoy reconectando...";
 
@@ -51,11 +127,12 @@ function includesWord(input, word) {
 }
 
 function detectEnglish(message) {
-  const keywords = ["hello", "hi", "help", "buy", "join", "order"];
+  const keywords = ["hello", "hi", "help", "buy", "join", "order", "scan", "schedule", "appointment"];
   return keywords.some((word) => includesWord(message, word));
 }
 
 function detectIntent(message) {
+ codex/add-scan-support-to-chat-api-flgzux
   const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
   if (scanTerms.some((word) => includesWord(message, word))) return "scan";
   return "general";
@@ -81,6 +158,55 @@ function buildCloseActions(intent) {
       text: whatsappText,
     },
   ];
+
+  const buyTerms = ["comprar", "precio", "orden", "order", "buy", "purchase", "checkout"];
+codex/add-scan-support-to-chat-api-ix4s67
+  const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
+
+  const scanTerms = ["escaneo", "scan", "scanner", "escáner", "cita", "agendar", "agenda", "appointment"];
+main
+  const supportTerms = ["whatsapp", "wsp", "asesor", "advisor", "support", "ayuda", "help"];
+  const joinTerms = ["unirme", "afiliar", "negocio", "comision", "team", "join", "affiliate"];
+
+  if (buyTerms.some((word) => includesWord(message, word))) return "buy";
+  if (scanTerms.some((word) => includesWord(message, word))) return "scan";
+  if (supportTerms.some((word) => includesWord(message, word))) return "support";
+  if (joinTerms.some((word) => includesWord(message, word))) return "join";
+  return "unknown";
+}
+
+function buildActions(intent, isEnglish) {
+  const primaryWhatsApp = isEnglish ? ACTIONS.whatsappEn : ACTIONS.whatsappEs;
+  const secondaryWhatsApp = isEnglish ? ACTIONS.whatsappEs : ACTIONS.whatsappEn;
+  const joinPrimary = isEnglish ? ACTIONS.joinEn : ACTIONS.joinEs;
+  const joinSecondary = isEnglish ? ACTIONS.joinEs : ACTIONS.joinEn;
+
+  if (intent === "buy") {
+    return [ACTIONS.buy, primaryWhatsApp, secondaryWhatsApp];
+  }
+
+  if (intent === "support") {
+    return [primaryWhatsApp, secondaryWhatsApp, ACTIONS.buy];
+  }
+
+  if (intent === "join") {
+    return [joinPrimary, joinSecondary];
+  }
+
+  if (intent === "scan") {
+    return [
+      ACTIONS.scanSchedule,
+codex/add-scan-support-to-chat-api-ix4s67
+      ACTIONS.scanWhatsAppEs,
+
+      isEnglish ? ACTIONS.scanWhatsAppEn : ACTIONS.scanWhatsAppEs,
+      isEnglish ? ACTIONS.whatsappEn : ACTIONS.whatsappEs,
+main
+    ];
+  }
+
+  return [primaryWhatsApp, ACTIONS.buy];
+ main
 }
 
 function needsMedicalDisclaimer(message) {
@@ -139,7 +265,11 @@ module.exports = async function handler(req, res) {
     if (lockedReply) {
       isEnglish = detectEnglish(userMessage);
       intent = detectIntent(userMessage);
+ codex/add-scan-support-to-chat-api-flgzux
       actions = buildCloseActions(intent);
+
+      actions = buildActions(intent, isEnglish);
+ main
       return sendJson(res, 200, { ok: true, reply: lockedReply, mode: "locked", intent, actions });
     }
 
