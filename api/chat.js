@@ -8,39 +8,14 @@ const OPENAI_ASSISTANT_ID = process.env.OPENAI_ASSISTANT_ID;
 
 const POLL_INTERVAL_MS = 350;
 const MAX_WAIT_MS = 20000; // 20s
-const BUY_URL = "https://vitalhealthglobal.com/collections/all?refID=145748";
-
-const ACTIONS = {
-  buy: {
-    type: "open_url",
-    label: "Comprar ahora",
-    url: BUY_URL,
-  },
-  whatsappEs: {
-    type: "whatsapp",
-    label: "WhatsApp (Español)",
-    phone: "19565505115",
-    text: "Hola, vengo de INFINIUM...",
-  },
-  whatsappEn: {
-    type: "whatsapp",
-    label: "WhatsApp (English)",
-    phone: "19564421379",
-    text: "Hello, I came from INFINIUM...",
-  },
-  joinEs: {
-    type: "whatsapp",
-    label: "WhatsApp (Español)",
-    phone: "19565505115",
-    text: "Hola, vengo de INFINIUM y quiero unirme como afiliado.",
-  },
-  joinEn: {
-    type: "whatsapp",
-    label: "WhatsApp (English)",
-    phone: "19564421379",
-    text: "Hello, I came from INFINIUM and want to join as an affiliate.",
-  },
-};
+const CHECKOUT_URL = process.env.CHECKOUT_URL || "https://infinium.services/";
+const SCAN_SCHEDULE_URL =
+  process.env.SCAN_SCHEDULE_URL || "https://infinium.services/scan.html";
+const WHATSAPP_PHONE = process.env.WHATSAPP_PHONE || "19565505115";
+const WHATSAPP_TEXT =
+  process.env.WHATSAPP_TEXT || "Hola, vengo de INFINIUM. Quiero ayuda para elegir una opción.";
+const SCAN_WHATSAPP_TEXT =
+  process.env.SCAN_WHATSAPP_TEXT || "Hola, quiero agendar un escaneo.";
 
 const ERROR_REPLY = "Disculpa, estoy reconectando...";
 
@@ -81,35 +56,31 @@ function detectEnglish(message) {
 }
 
 function detectIntent(message) {
-  const buyTerms = ["comprar", "precio", "orden", "order", "buy", "purchase", "checkout"];
-  const supportTerms = ["whatsapp", "wsp", "asesor", "advisor", "support", "ayuda", "help"];
-  const joinTerms = ["unirme", "afiliar", "negocio", "comision", "team", "join", "affiliate"];
-
-  if (buyTerms.some((word) => includesWord(message, word))) return "buy";
-  if (supportTerms.some((word) => includesWord(message, word))) return "support";
-  if (joinTerms.some((word) => includesWord(message, word))) return "join";
-  return "unknown";
+  const scanTerms = ["escaneo", "escáner", "scan", "scanner", "agendar", "cita", "appointment"];
+  if (scanTerms.some((word) => includesWord(message, word))) return "scan";
+  return "general";
 }
 
-function buildActions(intent, isEnglish) {
-  const primaryWhatsApp = isEnglish ? ACTIONS.whatsappEn : ACTIONS.whatsappEs;
-  const secondaryWhatsApp = isEnglish ? ACTIONS.whatsappEs : ACTIONS.whatsappEn;
-  const joinPrimary = isEnglish ? ACTIONS.joinEn : ACTIONS.joinEs;
-  const joinSecondary = isEnglish ? ACTIONS.joinEs : ACTIONS.joinEn;
-
-  if (intent === "buy") {
-    return [ACTIONS.buy, primaryWhatsApp, secondaryWhatsApp];
-  }
-
-  if (intent === "support") {
-    return [primaryWhatsApp, secondaryWhatsApp, ACTIONS.buy];
-  }
-
-  if (intent === "join") {
-    return [joinPrimary, joinSecondary];
-  }
-
-  return [primaryWhatsApp, ACTIONS.buy];
+function buildCloseActions(intent) {
+  const whatsappText = intent === "scan" ? SCAN_WHATSAPP_TEXT : WHATSAPP_TEXT;
+  return [
+    {
+      type: "open_url",
+      label: "Compra ya",
+      url: CHECKOUT_URL,
+    },
+    {
+      type: "open_url",
+      label: "Agenda escaneo",
+      url: SCAN_SCHEDULE_URL,
+    },
+    {
+      type: "whatsapp",
+      label: "Asesor (WhatsApp)",
+      phone: WHATSAPP_PHONE,
+      text: whatsappText,
+    },
+  ];
 }
 
 function needsMedicalDisclaimer(message) {
@@ -151,8 +122,8 @@ module.exports = async function handler(req, res) {
     return sendJson(res, 405, { ok: false, reply: ERROR_REPLY, error: "method_not_allowed" });
   }
 
-  let intent = "unknown";
-  let actions = buildActions(intent, false);
+  let intent = "general";
+  let actions = buildCloseActions(intent);
   let isEnglish = false;
 
   try {
@@ -166,7 +137,10 @@ module.exports = async function handler(req, res) {
 
     const lockedReply = handleUserMessage(userMessage);
     if (lockedReply) {
-      return sendJson(res, 200, { reply: lockedReply, mode: "locked" });
+      isEnglish = detectEnglish(userMessage);
+      intent = detectIntent(userMessage);
+      actions = buildCloseActions(intent);
+      return sendJson(res, 200, { ok: true, reply: lockedReply, mode: "locked", intent, actions });
     }
 
     if (!hasOpenAiConfig()) {
@@ -176,7 +150,7 @@ module.exports = async function handler(req, res) {
     const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
     isEnglish = detectEnglish(userMessage);
     intent = detectIntent(userMessage);
-    actions = buildActions(intent, isEnglish);
+    actions = buildCloseActions(intent);
 
     const thread = await openai.beta.threads.create();
 
