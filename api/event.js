@@ -14,6 +14,10 @@ module.exports = async function handler(req, res) {
     const body = await parseRequestBody(req, res);
     if (!body) return;
 
+    const sessionId = body?.sessionId || body?.session_id || null;
+    const page = body?.meta?.page || null;
+    console.log(`[event] hit sessionId=${sessionId ?? "n/a"} page=${page ?? "n/a"}`);
+
     // forwardToN8n puede fallar si N8N_WEBHOOK_URL/SECRET no existen
     const out = await forwardToN8n(body);
 

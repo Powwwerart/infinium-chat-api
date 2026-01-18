@@ -256,6 +256,10 @@ module.exports = async function handler(req, res) {
     const body = await parseRequestBody(req, res);
     if (!body) return;
 
+    const sessionId = body?.sessionId || body?.session_id || null;
+    const page = body?.meta?.page || null;
+    console.log(`[chat] hit sessionId=${sessionId ?? "n/a"} page=${page ?? "n/a"}`);
+
     const userMessage = extractUserMessage(body).trim();
     if (!userMessage) {
       return sendJson(res, 400, { ok: false, reply: ERROR_REPLY, error: "missing_message" });
