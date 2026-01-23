@@ -1,36 +1,28 @@
 // api/_cors.js
 module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
   const origin = req.headers.origin;
+  const envOrigins = process.env.FRONTEND_ORIGIN || "";
+  const isProd = process.env.NODE_ENV === "production";
 
-  const defaultAllowed = [
-    "https://infinium.services",
-    "https://infinium-chat-api.vercel.app",
-    "http://localhost:3000",
-    "https://localhost:3000",
-  ];
-
-  // Lee env y lo convierte a lista limpia
-  const raw = process.env.ALLOWED_ORIGINS || "";
-  const allowed = raw
+  const allowedOrigins = envOrigins
     .split(",")
-    .map((s) => s.trim())
+    .map((value) => value.trim())
     .filter(Boolean);
 
-  const allowedOrigins = new Set([...defaultAllowed, ...allowed]);
+  const allowAll = !allowedOrigins.length && !isProd;
 
-  // Permite wildcard con "*"
-  const allowAll = allowedOrigins.has("*");
-
-  // Decide el origin permitido
   const isAllowed =
     allowAll ||
-    (origin && allowedOrigins.has(origin)) ||
+    (origin && allowedOrigins.includes(origin)) ||
     // si no hay origin (curl/postman/server-to-server), no bloquees
     !origin;
 
   if (isAllowed) {
-    // IMPORTANTE: si es allowAll y hay origin, refleja el origin para evitar problemas con credentials/proxies
-    if (origin) res.setHeader("Access-Control-Allow-Origin", origin);
+    if (allowAll) {
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    } else if (origin) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+    }
   }
 
   res.setHeader("Vary", "Origin");

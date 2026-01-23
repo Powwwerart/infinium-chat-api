@@ -16,6 +16,6 @@ module.exports = async function handler(req, res) {
   return res.status(200).json({
     ok: true,
     service: "infinium-chat-api",
-    time: new Date().toISOString(),
+    ts: new Date().toISOString(),
   });
 };

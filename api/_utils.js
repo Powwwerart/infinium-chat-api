@@ -27,27 +27,24 @@ async function forwardToN8n(payload) {
   const secret = process.env.N8N_WEBHOOK_SECRET;
 
   if (!webhookUrl) {
-    const error = new Error("Missing N8N_WEBHOOK_URL");
-    error.statusCode = 500;
-    throw error;
-  }
-
-  if (!secret) {
-    const error = new Error("Missing N8N_WEBHOOK_SECRET");
-    error.statusCode = 500;
-    throw error;
+    return { skipped: true };
   }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
+    const headers = {
+      "Content-Type": "application/json",
+    };
+
+    if (secret) {
+      headers["x-infinium-secret"] = secret;
+    }
+
     const response = await fetch(webhookUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-infinium-secret": secret,
-      },
+      headers,
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
@@ -78,8 +75,34 @@ async function forwardToN8n(payload) {
   }
 }
 
+function normalizeEvent({ message, meta, intent, confidence, eventType }) {
+  const rawMeta = meta && typeof meta === "object" ? meta : {};
+  const allowedTypes = new Set(["lead", "error", "venta", "alerta"]);
+  const resolvedType = allowedTypes.has(eventType) ? eventType : "lead";
+
+  return {
+    event_type: resolvedType,
+    source: "web",
+    project: "INFINIUM",
+    user: {
+      name: null,
+      contact: null,
+    },
+    intent: intent || null,
+    confidence: typeof confidence === "number" ? confidence : 0.0,
+    priority: "low",
+    message: message || "",
+    meta: {
+      site_id: rawMeta.site_id || "",
+      campaign_id: rawMeta.campaign_id || "",
+    },
+    timestamp: new Date().toISOString(),
+  };
+}
+
 module.exports = {
   forwardToN8n,
+  normalizeEvent,
   parseRequestBody,
   sendJson,
 };
