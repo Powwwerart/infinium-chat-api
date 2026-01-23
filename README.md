@@ -8,11 +8,11 @@ Create a `.env` file with:
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| `FRONTEND_ORIGIN` | Allowed origin(s) for CORS, comma-separated. Required in production. | `https://infinium.services` |
+| `FRONTEND_ORIGIN` | Allowed origin(s) for CORS, comma-separated. Optional; if missing, the API echoes the request origin. | `https://infinium.services` |
+| `BUY_URL` | Public shop URL appended to every chat response. | `https://vitalhealthglobal.com/collections/all?refID=145748` |
+| `WHATSAPP_PHONE` | WhatsApp phone number (digits only) used to build the contact URL. | `19565505115` |
 | `N8N_WEBHOOK_URL` | Optional n8n webhook URL that receives normalized payloads. | `https://example.n8n.cloud/webhook/infinium` |
 | `N8N_WEBHOOK_SECRET` | Optional secret sent as `x-infinium-secret` header to n8n. | `<string-largo>` |
-| `OPENAI_API_KEY` | OpenAI API key for Assistants calls used by `/api/chat`. | `<TOKEN_HERE>` |
-| `OPENAI_ASSISTANT_ID` | Assistant ID used by `/api/chat`. | `asst_12345678` |
 | `NODE_ENV` | Node environment. | `production` |
 
 When `N8N_WEBHOOK_URL` is missing, the API responds with a stable fallback reply and still returns `200` for logging events.
@@ -22,7 +22,7 @@ When `N8N_WEBHOOK_URL` is missing, the API responds with a stable fallback reply
 - `GET /api` — Lists available routes.
 - `GET /api/ping` — Health endpoint with timestamp (CORS-enabled).
 - `GET /api/health` — Health endpoint returning `{ ok, service, ts, n8n: { webhookUrlConfigured, webhookSecretConfigured } }`.
-- `POST /api/chat` — Validates the body, normalizes the payload, optionally forwards to n8n, and returns a stable reply.
+- `POST /api/chat` — Validates the body, detects one of 9 wellness intents, optionally forwards to n8n, and always returns a stable reply with shop + WhatsApp links.
 - `POST /api/event` — Receives logging events, normalizes them, optionally forwards to n8n, and always replies `200`.
 - `POST /api/message` — Alias of `/api/chat`.
 
@@ -83,8 +83,8 @@ Basic in-memory limiter: 20 requests per 60 seconds per `sessionId` (falls back 
 
 ## CORS
 
-- In production (`NODE_ENV=production`), `FRONTEND_ORIGIN` must be set.
-- In development, if `FRONTEND_ORIGIN` is not set, all origins are allowed.
+- If `FRONTEND_ORIGIN` is set, the API uses it as the allowed origin(s).
+- If `FRONTEND_ORIGIN` is missing, the API echoes the request origin so the frontend is never blocked.
 
 ## Running locally
 
