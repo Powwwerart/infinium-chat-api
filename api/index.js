@@ -4,7 +4,7 @@ const { sendJson } = require("./_utils");
 const ROUTES = ["/api/ping", "/api/health", "/api/chat", "/api/event", "/api/message"];
 
 module.exports = function handler(req, res) {
-  setCors(req, res, ["GET", "OPTIONS"]);
+  if (!setCors(req, res, ["GET", "OPTIONS"])) return;
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();

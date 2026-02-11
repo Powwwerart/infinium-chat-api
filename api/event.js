@@ -2,7 +2,7 @@ const setCors = require("./_cors");
 const { forwardToN8n, normalizeEvent, parseRequestBody, sendJson } = require("./_utils");
 
 module.exports = async function handler(req, res) {
-  setCors(req, res, ["POST", "OPTIONS"]);
+  if (!setCors(req, res, ["POST", "OPTIONS"])) return;
 
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") {

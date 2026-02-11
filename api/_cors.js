@@ -7,21 +7,6 @@ module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  let allowOrigin = "";
-  if (allowedOrigins.length > 0) {
-    if (origin && allowedOrigins.includes(origin)) {
-      allowOrigin = origin;
-    } else {
-      allowOrigin = allowedOrigins[0];
-    }
-  } else {
-    allowOrigin = origin || "*";
-  }
-
-  if (allowOrigin) {
-    res.setHeader("Access-Control-Allow-Origin", allowOrigin);
-  }
-
   res.setHeader("Vary", "Origin");
   res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
   res.setHeader(
@@ -36,7 +21,19 @@ module.exports = function setCors(req, res, methods = ["POST", "OPTIONS"]) {
       "X-Infinium-Campaign",
     ].join(", ")
   );
-  // Si NO usas cookies, déjalo en false (mejor). Si algún día usas cookies, lo activas.
   res.setHeader("Access-Control-Allow-Credentials", "false");
   res.setHeader("Access-Control-Max-Age", "86400");
+
+  if (allowedOrigins.length > 0) {
+    if (!origin || !allowedOrigins.includes(origin)) {
+      res.status(403).json({ ok: false, error: "origin_forbidden" });
+      return false;
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    return true;
+  }
+
+  res.setHeader("Access-Control-Allow-Origin", origin || "*");
+  return true;
 };
