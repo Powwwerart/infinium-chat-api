@@ -1,7 +1,7 @@
 const setCors = require("./_cors");
 
 module.exports = (req, res) => {
-  setCors(req, res, ["GET", "OPTIONS"]);
+  if (!setCors(req, res, ["GET", "OPTIONS"])) return;
 
   if (req.method === "OPTIONS") {
     return res.status(204).end();
